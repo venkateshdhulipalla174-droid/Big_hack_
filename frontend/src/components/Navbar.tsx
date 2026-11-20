@@ -191,7 +191,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       type="text"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}
-                      placeholder="http://localhost:8000"
+                      placeholder="http://127.0.0.1:8000"
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {

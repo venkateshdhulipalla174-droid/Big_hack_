@@ -98,10 +98,15 @@ export const App: React.FC = () => {
     } catch (err: unknown) {
       console.error('K-SMART request failed:', err);
 
-      let errorMessage = 'Failed to connect to backend at http://localhost:8000. Is FastAPI server running?';
+      let errorMessage = 'Failed to connect to backend at http://127.0.0.1:8000. Is FastAPI server running?';
       if (typeof err === 'object' && err !== null) {
-        const errorObj = err as { response?: { data?: { detail?: string } }; message?: string };
-        if (errorObj.response?.data?.detail) {
+        const errorObj = err as {
+          response?: { data?: { detail?: string; error?: { message?: string } } };
+          message?: string;
+        };
+        if (errorObj.response?.data?.error?.message) {
+          errorMessage = errorObj.response.data.error.message;
+        } else if (errorObj.response?.data?.detail) {
           errorMessage = errorObj.response.data.detail;
         } else if (errorObj.message) {
           errorMessage = errorObj.message;

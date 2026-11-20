@@ -18,6 +18,10 @@ class ChatRequest(BaseModel):
         default=True,
         description="Default true. false = smaller response without candidate breakdown",
     )
+    mode: Optional[str] = Field(
+        default="adaptive",
+        description="Optional optimization mode from frontend (e.g. adaptive)",
+    )
 
 
 class CandidateInfo(BaseModel):

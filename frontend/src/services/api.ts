@@ -3,14 +3,23 @@ import { OptimizationMode, OptimizationResult, PromptPreset } from '../types';
 import { KSmartResponse, Candidate } from '../types/ksmart';
 import { getMockKSmartResponse } from '../data/mockResponses';
 
-const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const DEFAULT_API_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').trim();
 
 /**
  * Returns the currently active FastAPI backend base URL from localStorage, falling back to env/default.
  */
 export function getApiBaseUrl(): string {
   try {
-    return localStorage.getItem('ksmart_api_url') || DEFAULT_API_URL;
+    const stored = localStorage.getItem('ksmart_api_url');
+    if (stored && stored.trim() && stored !== 'undefined' && stored !== 'null') {
+      // If previously pointing to frontend Vite port 5173, reset to backend default
+      if (stored.includes(':5173')) {
+        localStorage.removeItem('ksmart_api_url');
+        return DEFAULT_API_URL;
+      }
+      return stored.trim();
+    }
+    return DEFAULT_API_URL;
   } catch {
     return DEFAULT_API_URL;
   }
@@ -76,38 +85,45 @@ export function normalizeKSmartResponse(raw: any, prompt: string): KSmartRespons
     raw?.original?.text || raw?.original_prompt || raw?.original?.prompt || prompt
   );
   const originalTokens = Number(
-    raw?.original?.tokens ?? Math.max(1, Math.round(originalText.length * 0.85))
+    raw?.original?.tokens ??
+    raw?.tokens?.original_input ??
+    Math.max(1, Math.round(originalText.length * 0.85))
   );
 
   const selectedText = String(
     raw?.selected?.text || raw?.optimized_prompt || raw?.selected_text || originalText
   );
   const selectedTokens = Number(
-    raw?.selected?.tokens ?? Math.max(1, Math.round(selectedText.length * 0.85))
+    raw?.selected?.tokens ??
+    raw?.tokens?.optimized_input ??
+    Math.max(1, Math.round(selectedText.length * 0.85))
   );
   const tokensSaved = Number(
-    raw?.selected?.tokens_saved ?? Math.max(0, originalTokens - selectedTokens)
+    raw?.selected?.tokens_saved ??
+    raw?.tokens?.saved ??
+    Math.max(0, originalTokens - selectedTokens)
   );
   const savingsPercent = Number(
     raw?.selected?.savings_percent ??
+    raw?.tokens?.saved_percent ??
       (originalTokens > 0 ? (tokensSaved / originalTokens) * 100 : 0)
   );
   const similarityScore = Number(
     raw?.selected?.similarity_score ?? raw?.similarity_score ?? 0.92
   );
   const strategy = String(
-    raw?.selected?.strategy || raw?.strategy || 'concise_kannada'
+    raw?.selected?.strategy || raw?.chosen_candidate || raw?.strategy || 'concise_kannada'
   );
 
   // Defensive candidates normalization
   let candidates: Candidate[] = [];
   if (Array.isArray(raw?.candidates) && raw.candidates.length > 0) {
     candidates = raw.candidates.map((c: any) => ({
-      strategy: String(c.strategy || 'Candidate'),
+      strategy: String(c.strategy || c.name || 'Candidate'),
       text: String(c.text || c.prompt || ''),
       tokens: Number(c.tokens ?? Math.max(1, Math.round(String(c.text || '').length * 0.85))),
       similarity: Number(c.similarity ?? c.similarity_score ?? 0.9),
-      passed_guard: Boolean(c.passed_guard ?? true),
+      passed_guard: Boolean(c.passed_guard ?? c.guard_passed ?? true),
     }));
   } else {
     // Generate synthetic candidates from response data if backend omitted candidates array
@@ -153,22 +169,26 @@ export function normalizeKSmartResponse(raw: any, prompt: string): KSmartRespons
   // Defensive metrics normalization (support processing_time_ms, etc.)
   const optLatency = Number(
     raw?.metrics?.optimization_latency_ms ??
+    raw?.latency_ms?.optimizer ??
     raw?.processing_time_ms ??
     raw?.optimization_latency_ms ??
     78
   );
   const llmLatency = Number(
     raw?.metrics?.llm_latency_ms ??
+    raw?.latency_ms?.llm ??
     raw?.llm_latency_ms ??
     1100
   );
   const totalLatency = Number(
     raw?.metrics?.total_latency_ms ??
+    raw?.latency_ms?.total ??
     raw?.total_latency_ms ??
     (optLatency + llmLatency)
   );
   const outputTokens = Number(
     raw?.metrics?.output_tokens ??
+    raw?.tokens?.llm_output_tokens ??
     raw?.output_tokens ??
     Math.max(1, Math.round(String(raw?.llm_response || raw?.response || '').length * 0.35))
   );
@@ -239,7 +259,8 @@ export async function optimizeAndRun(
     return getMockKSmartResponse(prompt);
   }
 
-  const response = await apiClient.post<any>('/api/optimize-and-run', {
+  // Live Mode: query FastAPI backend primary endpoint POST /api/v1/chat
+  const response = await apiClient.post<any>('/api/v1/chat', {
     prompt,
     mode,
   });
