@@ -3,34 +3,50 @@ import { OptimizationMode, OptimizationResult, PromptPreset } from '../types';
 import { KSmartResponse, Candidate } from '../types/ksmart';
 import { getMockKSmartResponse } from '../data/mockResponses';
 
-const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const FALLBACK_API_URL = 'http://localhost:8000';
+const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || FALLBACK_API_URL;
+
+/**
+ * Validates that a given URL strictly starts with http:// or https://, falling back to default/localhost otherwise.
+ */
+function sanitizeBaseUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== 'string') return DEFAULT_API_URL;
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return FALLBACK_API_URL;
+}
 
 /**
  * Returns the currently active FastAPI backend base URL from localStorage, falling back to env/default.
+ * Enforces http:// or https:// schemes.
  */
 export function getApiBaseUrl(): string {
   try {
-    return localStorage.getItem('ksmart_api_url') || DEFAULT_API_URL;
+    const stored = localStorage.getItem('ksmart_api_url');
+    return sanitizeBaseUrl(stored || DEFAULT_API_URL);
   } catch {
-    return DEFAULT_API_URL;
+    return sanitizeBaseUrl(DEFAULT_API_URL);
   }
 }
 
 /**
  * Updates the active FastAPI backend base URL in localStorage and configures apiClient defaults.
+ * Validates that the configured URL starts with http:// or https://, falling back to "http://localhost:8000" otherwise.
  */
 export function setApiBaseUrl(url: string): void {
   try {
     const trimmed = url.trim();
-    if (trimmed) {
+    if (trimmed && /^https?:\/\//i.test(trimmed)) {
       localStorage.setItem('ksmart_api_url', trimmed);
       apiClient.defaults.baseURL = trimmed;
     } else {
       localStorage.removeItem('ksmart_api_url');
-      apiClient.defaults.baseURL = DEFAULT_API_URL;
+      apiClient.defaults.baseURL = FALLBACK_API_URL;
     }
   } catch {
-    apiClient.defaults.baseURL = url.trim() || DEFAULT_API_URL;
+    apiClient.defaults.baseURL = FALLBACK_API_URL;
   }
 }
 
