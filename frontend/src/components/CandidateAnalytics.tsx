@@ -127,8 +127,8 @@ export const CandidateAnalytics: React.FC<CandidateAnalyticsProps> = ({ data }) 
           </div>
 
           {/* Recharts Horizontal Bar Chart */}
-          <div className="w-full">
-            <ResponsiveContainer width="100%" height={260}>
+          <div className="w-full h-[260px] min-h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 layout="vertical"
                 data={chartData}
