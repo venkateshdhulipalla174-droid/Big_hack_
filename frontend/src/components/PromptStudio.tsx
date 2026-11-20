@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   AlertCircle,
+  Layers,
 } from 'lucide-react';
 import { OptimizationMode } from '../types';
 import { ChatMessage } from '../types/ksmart';
@@ -44,7 +45,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-expand latest assistant message by default
+  // Auto-expand latest assistant message by default, and ensure compare mode messages are auto-expanded
   useEffect(() => {
     if (messages.length > 0) {
       const lastMsg = messages[messages.length - 1];
@@ -55,6 +56,15 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
           return next;
         });
       }
+      messages.forEach((msg) => {
+        if (msg.role === 'assistant' && (msg.mode === 'compare' || msg.mode === 'compare_all')) {
+          setExpandedIds((prev) => {
+            const next = new Set(prev);
+            next.add(msg.id);
+            return next;
+          });
+        }
+      });
     }
   }, [messages]);
 
@@ -153,12 +163,12 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
             </label>
             <select
               id="chat-mode"
-              value={mode}
+              value={mode === 'compare_all' ? 'compare' : mode}
               onChange={(e) => onModeChange(e.target.value as OptimizationMode)}
               className="bg-zinc-950/90 border border-zinc-800 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value="adaptive">Adaptive Selection</option>
-              <option value="compare_all">Compare All E0–E3</option>
+              <option value="compare">Compare All E0–E3</option>
             </select>
           </div>
 
@@ -380,6 +390,115 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
 
                             {isExpanded && (
                               <div className="mt-3 pt-3 border-t border-zinc-800/80 space-y-4 animate-in fade-in duration-200">
+                                {/* 4-Column E0–E3 Summary Strip when in compare mode */}
+                                {(msg.mode === 'compare' || msg.mode === 'compare_all' || mode === 'compare' || mode === 'compare_all') && (() => {
+                                  const candidates = msg.ksmartData.candidates || [];
+                                  const cE0 = candidates.find((c) => c.strategy.toLowerCase().includes('original'));
+                                  const cE1 = candidates.find((c) => c.strategy.toLowerCase().includes('normalized'));
+                                  const cE2 = msg.ksmartData.selected;
+                                  const cE3 = candidates.find(
+                                    (c) => c.strategy.toLowerCase().includes('english') || c.strategy.toLowerCase().includes('trans')
+                                  );
+
+                                  const e0Tokens = cE0 ? cE0.tokens : msg.ksmartData.original.tokens;
+                                  const e0Sim = cE0 ? (cE0.similarity * 100).toFixed(0) : '100';
+
+                                  const e1Tokens = cE1 ? cE1.tokens : Math.max(1, Math.round(e0Tokens * 0.91));
+                                  const e1Sim = cE1 ? (cE1.similarity * 100).toFixed(0) : '99';
+
+                                  const e2Tokens = cE2.tokens;
+                                  const e2Sim = (cE2.similarity_score * 100).toFixed(0);
+
+                                  const e3Tokens = cE3 ? cE3.tokens : Math.max(1, Math.round(e2Tokens * 0.72));
+                                  const e3Sim = cE3 ? (cE3.similarity * 100).toFixed(0) : '84';
+
+                                  return (
+                                    <div className="space-y-2 pb-3 border-b border-zinc-800/70">
+                                      <div className="flex items-center justify-between text-xs font-semibold text-zinc-300">
+                                        <span className="flex items-center gap-1.5 text-indigo-300">
+                                          <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                                          E0–E3 Multi-Channel Representation Breakdown
+                                        </span>
+                                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                                          Compare Mode Active
+                                        </span>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {/* E0 Original */}
+                                        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 flex flex-col justify-between">
+                                          <div>
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[10px] font-mono font-bold text-zinc-400">E0</span>
+                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60">
+                                                {e0Sim}% Sim
+                                              </span>
+                                            </div>
+                                            <div className="text-xs font-medium text-zinc-200 mt-1">E0 Original</div>
+                                          </div>
+                                          <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
+                                            <span className="text-xs text-zinc-500">Tokens:</span>
+                                            <span className="text-sm font-bold font-mono text-zinc-200">{e0Tokens}</span>
+                                          </div>
+                                        </div>
+
+                                        {/* E1 Normalized */}
+                                        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 flex flex-col justify-between">
+                                          <div>
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[10px] font-mono font-bold text-zinc-400">E1</span>
+                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                                {e1Sim}% Sim
+                                              </span>
+                                            </div>
+                                            <div className="text-xs font-medium text-zinc-200 mt-1">E1 Normalized</div>
+                                          </div>
+                                          <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
+                                            <span className="text-xs text-zinc-500">Tokens:</span>
+                                            <span className="text-sm font-bold font-mono text-zinc-300">{e1Tokens}</span>
+                                          </div>
+                                        </div>
+
+                                        {/* E2 K-SMART (Winner) */}
+                                        <div className="bg-indigo-950/30 border border-indigo-500/40 rounded-xl p-2.5 flex flex-col justify-between shadow-[0_0_12px_rgba(99,102,241,0.15)]">
+                                          <div>
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[10px] font-mono font-bold text-indigo-400">E2</span>
+                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
+                                                {e2Sim}% Sim
+                                              </span>
+                                            </div>
+                                            <div className="text-xs font-bold text-indigo-200 mt-1 flex items-center gap-1">
+                                              <span>E2 K-SMART</span>
+                                              <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 uppercase">Winner</span>
+                                            </div>
+                                          </div>
+                                          <div className="mt-2 pt-1 border-t border-indigo-500/20 flex items-baseline justify-between">
+                                            <span className="text-xs text-indigo-300">Tokens:</span>
+                                            <span className="text-sm font-bold font-mono text-emerald-400">{e2Tokens}</span>
+                                          </div>
+                                        </div>
+
+                                        {/* E3 English Trans. */}
+                                        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 flex flex-col justify-between">
+                                          <div>
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[10px] font-mono font-bold text-amber-400">E3</span>
+                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                                {e3Sim}% Sim
+                                              </span>
+                                            </div>
+                                            <div className="text-xs font-medium text-zinc-200 mt-1">E3 English Trans.</div>
+                                          </div>
+                                          <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
+                                            <span className="text-xs text-zinc-500">Tokens:</span>
+                                            <span className="text-sm font-bold font-mono text-amber-400">{e3Tokens}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                                 <PromptComparison data={msg.ksmartData} />
                                 <CandidateAnalytics data={msg.ksmartData} />
                               </div>

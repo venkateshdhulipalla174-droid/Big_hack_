@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TabType, OptimizationMode } from './types';
 import { ChatMessage } from './types/ksmart';
-import { optimizeAndRun } from './services/api';
+import { optimizeAndRun, checkBackendHealth } from './services/api';
 import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
 import { BenchmarkView } from './components/BenchmarkView';
@@ -12,6 +12,7 @@ export const App: React.FC = () => {
   const [mockMode, setMockMode] = useState<boolean>(true);
   const [mode, setMode] = useState<OptimizationMode>('adaptive');
   const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
+  const [apiStatus, setApiStatus] = useState<'connected' | 'offline' | null>(null);
 
   // Conversational Chat Messages State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -29,6 +30,26 @@ export const App: React.FC = () => {
     0
   );
 
+  const handleCheckHealth = async () => {
+    try {
+      const isHealthy = await checkBackendHealth();
+      setApiStatus(isHealthy ? 'connected' : 'offline');
+    } catch {
+      setApiStatus('offline');
+    }
+  };
+
+  const handleToggleMockMode = async () => {
+    const nextMock = !mockMode;
+    setMockMode(nextMock);
+    setError(null);
+    if (!nextMock) {
+      await handleCheckHealth();
+    } else {
+      setApiStatus(null);
+    }
+  };
+
   const handleSendMessage = async (promptText: string, selectedMode: OptimizationMode) => {
     setError(null);
 
@@ -38,6 +59,7 @@ export const App: React.FC = () => {
       role: 'user',
       content: promptText,
       timestamp: Date.now(),
+      mode: selectedMode,
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -69,6 +91,7 @@ export const App: React.FC = () => {
         content: responseData.llm_response,
         timestamp: Date.now(),
         ksmartData: responseData,
+        mode: selectedMode,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -93,6 +116,7 @@ export const App: React.FC = () => {
 
   const handleSwitchToMock = () => {
     setMockMode(true);
+    setApiStatus(null);
     setError(null);
   };
 
@@ -110,15 +134,14 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         mockMode={mockMode}
-        onToggleMockMode={() => {
-          setMockMode((prev) => !prev);
-          setError(null);
-        }}
+        onToggleMockMode={handleToggleMockMode}
         hasMessages={messages.length > 0}
         onNewChat={handleNewChat}
         sessionOriginalTokens={sessionOriginalTokens}
         sessionSavedTokens={sessionSavedTokens}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
+        apiStatus={apiStatus}
+        onRecheckHealth={handleCheckHealth}
       />
 
       {/* Main Workspace */}

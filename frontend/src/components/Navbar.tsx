@@ -12,6 +12,8 @@ interface NavbarProps {
   sessionOriginalTokens?: number;
   sessionSavedTokens?: number;
   onOpenArchitecture?: () => void;
+  apiStatus?: 'connected' | 'offline' | null;
+  onRecheckHealth?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,6 +26,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   sessionOriginalTokens = 0,
   sessionSavedTokens = 0,
   onOpenArchitecture,
+  apiStatus,
+  onRecheckHealth,
 }) => {
   const sessionPercent =
     sessionOriginalTokens > 0
@@ -101,6 +105,32 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Plus className="w-3.5 h-3.5 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
               <span>New Chat</span>
+            </button>
+          )}
+
+          {/* Live API Connection Status Pill (when Mock Mode is OFF) */}
+          {!mockMode && apiStatus && (
+            <button
+              type="button"
+              onClick={onRecheckHealth}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium border transition-colors cursor-pointer ${
+                apiStatus === 'connected'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+              }`}
+              title={apiStatus === 'offline' ? 'API Offline: Click to re-ping' : 'FastAPI Backend Connected'}
+            >
+              <span className="relative flex h-2 w-2">
+                {apiStatus === 'connected' ? (
+                  <>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </>
+                ) : (
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-400"></span>
+                )}
+              </span>
+              <span>{apiStatus === 'connected' ? 'API Connected' : 'API Offline'}</span>
             </button>
           )}
 

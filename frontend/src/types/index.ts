@@ -1,6 +1,6 @@
 export type TabType = 'playground' | 'benchmark';
 
-export type OptimizationMode = 'adaptive' | 'compare_all';
+export type OptimizationMode = 'adaptive' | 'compare' | 'compare_all';
 
 export interface PromptPreset {
   id: string;

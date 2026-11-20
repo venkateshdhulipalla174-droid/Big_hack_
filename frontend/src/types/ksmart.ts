@@ -35,4 +35,5 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   ksmartData?: KSmartResponse;
+  mode?: string;
 }
