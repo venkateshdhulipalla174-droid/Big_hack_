@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+.coverage
+node_modules/
+dist/
+evaluation/results/raw/*
+!evaluation/results/raw/.gitkeep
+*.ipynb_checkpoints/
