@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Layers, Cpu, ShieldCheck, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { X, Layers, Cpu, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface ArchitectureModalProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ const STAGES = [
   {
     step: 'Stage 3',
     title: 'Semantic Similarity Guard',
-    subtitle: 'Embedding-Based Meaning Verifier',
+    subtitle: 'Cosine & Embedding Meaning Verifier',
     description:
       'Computes cosine similarity between candidate representations and the original prompt embedding. Candidates dropping below the 0.85 threshold are rejected immediately to eliminate factual drift and hallucination.',
     badge: 'Guaranteed Fidelity',
@@ -39,13 +39,28 @@ const STAGES = [
     title: 'Token-Optimal Selection & Adaptive Fallback',
     subtitle: 'Pareto-Optimal Representation Dispatch',
     description:
-      'Ranks valid candidates by token reduction efficiency. For short queries (<35 chars), adaptively passes through unaltered text (E0) with zero distortion; for verbose prompts, dispatches the winning compact representation.',
+      'Ranks valid candidates by token reduction efficiency. Adaptively falls back to the original prompt (E0) whenever compression degrades meaning or for short queries (<35 chars).',
     badge: 'Adaptive Dispatch',
     icon: <Sparkles className="w-4 h-4 text-violet-400" />,
   },
 ];
 
 export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, onClose }) => {
+  // Close on ESC key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -81,8 +96,8 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-            title="Close modal"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors cursor-pointer"
+            title="Close modal (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,7 +145,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-colors"
+            className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-colors cursor-pointer"
           >
             Close Spec
           </button>

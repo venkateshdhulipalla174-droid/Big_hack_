@@ -42,7 +42,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand latest assistant message by default
   useEffect(() => {
@@ -58,9 +58,9 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
     }
   }, [messages]);
 
-  // Scroll to bottom on new messages, running status, or step change
+  // Smooth auto-scroll to bottom on new messages, prompt sending, or assistant replies
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isRunning, activeStep, error]);
 
   const toggleExpand = (id: string) => {
@@ -392,7 +392,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
+            <div ref={bottomRef} />
           </div>
 
           {/* Docked bottom input bar */}

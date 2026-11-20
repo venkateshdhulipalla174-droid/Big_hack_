@@ -45,10 +45,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onOpenArchitecture}
-              className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/20 font-mono transition-all cursor-pointer shadow-sm"
+              className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/20 font-mono transition cursor-pointer shadow-sm"
               title="Click to view K-SMART 4-Stage Architecture Spec"
             >
-              v0.1
+              V0.1
             </button>
           </div>
         </div>
@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2.5">
           {/* Cumulative Session Savings Telemetry Pill */}
           {sessionSavedTokens > 0 && (
-            <div className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium font-mono shadow-[0_0_12px_rgba(52,211,153,0.15)] animate-in fade-in duration-200">
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium font-mono shadow-[0_0_12px_rgba(52,211,153,0.15)] animate-in fade-in duration-200">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>
                 Session Saved:{' '}

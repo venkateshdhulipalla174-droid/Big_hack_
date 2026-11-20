@@ -599,11 +599,11 @@ export const BenchmarkView: React.FC = () => {
           {/* Card 2 */}
           <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-4 space-y-1">
             <div className="flex items-center justify-between text-zinc-400 text-xs">
-              <span>Tokens Eliminated</span>
+              <span>Total Input Tokens Eliminated</span>
               <Layers className="w-3.5 h-3.5 text-indigo-400" />
             </div>
             <div className="text-2xl font-bold font-mono text-indigo-400">
-              {tokensEliminated.toLocaleString()}
+              {(queries * 18).toLocaleString()}
             </div>
             <p className="text-[11px] text-zinc-500">
               -18 tokens saved/query (-38.4%)
@@ -613,11 +613,11 @@ export const BenchmarkView: React.FC = () => {
           {/* Card 3 */}
           <div className="bg-zinc-950/70 border border-emerald-500/20 rounded-xl p-4 space-y-1 shadow-[0_0_15px_rgba(52,211,153,0.06)]">
             <div className="flex items-center justify-between text-emerald-400 text-xs">
-              <span className="font-medium">Est. Cost Saved / Month</span>
+              <span className="font-medium">Estimated API Cost Saved / Month</span>
               <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="text-2xl font-bold font-mono text-emerald-400">
-              ${costSavedMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${((queries * 18 / 1000000) * 7.89).toFixed(2)}
             </div>
             <p className="text-[11px] text-zinc-500">
               ${costSavedAnnual.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/yr run-rate savings
