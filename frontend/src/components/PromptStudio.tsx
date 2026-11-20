@@ -109,7 +109,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
     <div className="w-full">
       {/* Live API Error Alert Banner */}
       {error && (
-        <div className="mb-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-in fade-in duration-200">
+        <div className="mb-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span className="text-xs sm:text-sm font-medium">{error}</span>
