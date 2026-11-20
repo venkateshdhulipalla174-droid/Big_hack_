@@ -3,4 +3,4 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PipelineConfig:
-    tokenizer: str = "qwen"
+    tokenizer: str = "gemini-3.8-flash"
