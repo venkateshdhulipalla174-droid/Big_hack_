@@ -1,5 +1,16 @@
 import axios from 'axios';
 import { OptimizationMode, OptimizationResult, PromptPreset } from '../types';
+import { KSmartResponse } from '../types/ksmart';
+import { getMockKSmartResponse } from '../data/mockResponses';
+
+// Configure Axios with baseURL from environment variable and 30s timeout
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export interface ChatResponse {
   prompt: string;
@@ -26,6 +37,28 @@ export const PRESETS: PromptPreset[] = [
     badge: 'E0 Passthrough',
   },
 ];
+
+/**
+ * Optimizes the prompt and runs inference.
+ * - In Mock Mode: returns realistic local Kannada data.
+ * - In Live Mode: calls FastAPI POST /api/optimize-and-run.
+ */
+export async function optimizeAndRun(
+  prompt: string,
+  mode: string = 'adaptive',
+  useMock: boolean = true
+): Promise<KSmartResponse> {
+  if (useMock) {
+    return getMockKSmartResponse(prompt);
+  }
+
+  const response = await apiClient.post<KSmartResponse>('/api/optimize-and-run', {
+    prompt,
+    mode,
+  });
+
+  return response.data;
+}
 
 export async function optimizePrompt(
   prompt: string,
@@ -97,7 +130,7 @@ export async function optimizePrompt(
   // Live backend call via axios
   try {
     const startTime = performance.now();
-    const res = await axios.post<ChatResponse>('/api/v1/chat', { prompt });
+    const res = await apiClient.post<ChatResponse>('/api/v1/chat', { prompt });
     const endTime = performance.now();
 
     const originalChars = prompt.length;
