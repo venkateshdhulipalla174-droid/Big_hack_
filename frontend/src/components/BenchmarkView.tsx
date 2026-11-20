@@ -23,6 +23,7 @@ import {
   Sliders,
   Calculator,
   Zap,
+  Download,
 } from 'lucide-react';
 
 type MetricType = 'tokens' | 'latency';
@@ -171,6 +172,38 @@ export const BenchmarkView: React.FC = () => {
     { label: '10M', value: 10000000 },
   ];
 
+  const handleExportCSV = () => {
+    const headers = [
+      'Experiment',
+      'Approach',
+      'Avg_Tokens',
+      'Token_Savings',
+      'Avg_Latency_ms',
+      'Similarity',
+      'Verdict',
+    ];
+    const rows = BENCHMARK_DATA.map((row) => [
+      `"${row.id}"`,
+      `"${row.approach.replace(/"/g, '""')}"`,
+      row.tokens,
+      `"${row.savings}"`,
+      row.latency,
+      `"${row.similarity}"`,
+      `"${row.verdict.replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'ksmart-e0-e3-benchmark.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
@@ -193,10 +226,19 @@ export const BenchmarkView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-mono">
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-mono">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
             N=30 Prompts Dataset
           </span>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-3 py-2 rounded-lg transition-colors cursor-pointer"
+            title="Download ksmart-e0-e3-benchmark.csv"
+          >
+            <Download className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 

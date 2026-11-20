@@ -3,13 +3,50 @@ import { OptimizationMode, OptimizationResult, PromptPreset } from '../types';
 import { KSmartResponse, Candidate } from '../types/ksmart';
 import { getMockKSmartResponse } from '../data/mockResponses';
 
-// Configure Axios with baseURL from environment variable and 30s timeout
+const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+/**
+ * Returns the currently active FastAPI backend base URL from localStorage, falling back to env/default.
+ */
+export function getApiBaseUrl(): string {
+  try {
+    return localStorage.getItem('ksmart_api_url') || DEFAULT_API_URL;
+  } catch {
+    return DEFAULT_API_URL;
+  }
+}
+
+/**
+ * Updates the active FastAPI backend base URL in localStorage and configures apiClient defaults.
+ */
+export function setApiBaseUrl(url: string): void {
+  try {
+    const trimmed = url.trim();
+    if (trimmed) {
+      localStorage.setItem('ksmart_api_url', trimmed);
+      apiClient.defaults.baseURL = trimmed;
+    } else {
+      localStorage.removeItem('ksmart_api_url');
+      apiClient.defaults.baseURL = DEFAULT_API_URL;
+    }
+  } catch {
+    apiClient.defaults.baseURL = url.trim() || DEFAULT_API_URL;
+  }
+}
+
+// Configure Axios with dynamic baseURL and 30s timeout
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: getApiBaseUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// Request interceptor ensures requests always use the latest configured base URL
+apiClient.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
+  return config;
 });
 
 /**
@@ -17,12 +54,13 @@ const apiClient = axios.create({
  * Returns true on any 2xx response, false on error or timeout.
  */
 export async function checkBackendHealth(): Promise<boolean> {
+  const currentBase = getApiBaseUrl();
   try {
-    const res = await apiClient.get('/health', { timeout: 3000 });
+    const res = await apiClient.get('/health', { timeout: 3000, baseURL: currentBase });
     return res.status >= 200 && res.status < 300;
   } catch {
     try {
-      const fallbackRes = await apiClient.get('/', { timeout: 3000 });
+      const fallbackRes = await apiClient.get('/', { timeout: 3000, baseURL: currentBase });
       return fallbackRes.status >= 200 && fallbackRes.status < 300;
     } catch {
       return false;
