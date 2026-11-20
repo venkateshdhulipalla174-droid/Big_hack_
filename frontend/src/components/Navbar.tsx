@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Plus } from 'lucide-react';
 import { TabType } from '../types';
 
 interface NavbarProps {
@@ -7,6 +7,8 @@ interface NavbarProps {
   onTabChange: (tab: TabType) => void;
   mockMode: boolean;
   onToggleMockMode: () => void;
+  hasMessages?: boolean;
+  onNewChat?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,26 +16,23 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   mockMode,
   onToggleMockMode,
+  hasMessages = false,
+  onNewChat,
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Left: Glowing Indigo Sparkles + Title + Subtitle */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-indigo-950/60 border border-indigo-500/40 text-indigo-400 shadow-[0_0_16px_rgba(99,102,241,0.4)]">
-            <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+        {/* Left: Glowing Indigo Sparkles + Title + V0.1 Badge */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-950/60 border border-indigo-500/40 text-indigo-400 shadow-[0_0_16px_rgba(99,102,241,0.4)]">
+            <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
           </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-base sm:text-lg tracking-tight text-zinc-100">
-                K-SMART
-              </span>
-              <span className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                v0.1
-              </span>
-            </div>
-            <span className="text-xs text-zinc-400 font-normal hidden sm:block">
-              Adaptive Kannada Prompt Optimizer
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-base sm:text-lg tracking-tight text-zinc-100">
+              K-SMART
+            </span>
+            <span className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+              v0.1
             </span>
           </div>
         </div>
@@ -64,8 +63,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Right: Mock Mode Toggle Switch with Emerald Status Dot */}
+        {/* Right: New Chat (when messages exist) + Mock Mode Toggle Switch */}
         <div className="flex items-center gap-2.5">
+          {hasMessages && onNewChat && (
+            <button
+              type="button"
+              onClick={onNewChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-all shadow-sm group"
+              title="Start a new chat session"
+            >
+              <Plus className="w-3.5 h-3.5 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
+              <span>New Chat</span>
+            </button>
+          )}
+
+          {/* Mock Mode Switch */}
           <button
             type="button"
             role="switch"
@@ -89,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </span>
 
-            <span>Mock Mode</span>
+            <span className="hidden sm:inline">Mock Mode</span>
 
             {/* Visual switch slider */}
             <div

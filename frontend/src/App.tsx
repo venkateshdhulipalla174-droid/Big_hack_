@@ -1,30 +1,35 @@
 import React, { useState } from 'react';
 import { TabType, OptimizationMode } from './types';
-import { KSmartResponse } from './types/ksmart';
+import { ChatMessage } from './types/ksmart';
 import { getMockKSmartResponse } from './data/mockResponses';
 import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
-import { PipelineStepper } from './components/PipelineStepper';
-import { AchievementMetrics } from './components/AchievementMetrics';
-import { PromptComparison } from './components/PromptComparison';
-import { CandidateAnalytics } from './components/CandidateAnalytics';
-import { ResponseCard } from './components/ResponseCard';
 import { BenchmarkView } from './components/BenchmarkView';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
   const [mockMode, setMockMode] = useState<boolean>(true);
+  const [mode, setMode] = useState<OptimizationMode>('adaptive');
 
-  // Step 2 & 4 Pipeline & Optimization State
+  // Conversational Chat Messages State
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [ksmartResponse, setKsmartResponse] = useState<KSmartResponse | null>(null);
 
-  const handleOptimizeAndRun = async (promptText: string, _mode: OptimizationMode) => {
+  const handleSendMessage = async (promptText: string, selectedMode: OptimizationMode) => {
+    // 1. Add user message immediately
+    const userMsg: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: promptText,
+      timestamp: Date.now(),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
     setIsRunning(true);
     setActiveStep(1); // Step 1: Unicode Normalize
 
-    // Animate activeStep from 1 to 4 over ~1.2 seconds (300ms per step)
+    // 2. Animate pipeline 1 to 4 (~1.2s total, 300ms per step)
     await new Promise((r) => setTimeout(r, 300));
     setActiveStep(2); // Step 2: Generate 5 Candidates
 
@@ -36,9 +41,23 @@ export const App: React.FC = () => {
 
     await new Promise((r) => setTimeout(r, 300));
 
-    // Finish pipeline and load response data
+    // 3. Resolve response data
     const responseData = getMockKSmartResponse(promptText);
-    setKsmartResponse(responseData);
+    const assistantMsg: ChatMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: responseData.llm_response,
+      timestamp: Date.now(),
+      ksmartData: responseData,
+    };
+
+    setMessages((prev) => [...prev, assistantMsg]);
+    setIsRunning(false);
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setActiveStep(0);
     setIsRunning(false);
   };
 
@@ -50,10 +69,12 @@ export const App: React.FC = () => {
         onTabChange={setActiveTab}
         mockMode={mockMode}
         onToggleMockMode={() => setMockMode((prev) => !prev)}
+        hasMessages={messages.length > 0}
+        onNewChat={handleNewChat}
       />
 
-      {/* Main Workspace (max-w-6xl centered) */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      {/* Main Workspace */}
+      <main className="flex-1 w-full flex flex-col">
         {/* Subtle Ambient Background Glow */}
         <div className="relative">
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-96 h-32 bg-indigo-500/10 blur-[90px] pointer-events-none rounded-full" />
@@ -61,41 +82,23 @@ export const App: React.FC = () => {
 
         {/* Tab Content */}
         {activeTab === 'playground' ? (
-          <div className="space-y-6">
-            {/* Step 1 UI: Kannada Prompt Studio */}
-            <PromptStudio
-              mockMode={mockMode}
-              isRunning={isRunning}
-              onOptimize={handleOptimizeAndRun}
-            />
-
-            {/* Step 2 UI: Pipeline Progress Stepper */}
-            {(activeStep > 0 || isRunning || ksmartResponse) && (
-              <div className="animate-in fade-in duration-300">
-                <PipelineStepper activeStep={activeStep} isRunning={isRunning} />
-              </div>
-            )}
-
-            {/* Step 2 & 4 UI: Metrics, Comparison, Candidate Analytics, & Response Card */}
-            {ksmartResponse && !isRunning && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <AchievementMetrics data={ksmartResponse} />
-                <PromptComparison data={ksmartResponse} />
-                <CandidateAnalytics data={ksmartResponse} />
-                <ResponseCard
-                  response={ksmartResponse.llm_response}
-                  outputTokens={ksmartResponse.metrics.output_tokens}
-                />
-              </div>
-            )}
-          </div>
+          <PromptStudio
+            messages={messages}
+            isRunning={isRunning}
+            activeStep={activeStep}
+            onSendMessage={handleSendMessage}
+            mode={mode}
+            onModeChange={setMode}
+          />
         ) : (
-          <BenchmarkView />
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
+            <BenchmarkView />
+          </div>
         )}
       </main>
 
       {/* Sleek Minimal Footer */}
-      <footer className="w-full border-t border-zinc-900 bg-zinc-950/90 py-4 text-center text-xs text-zinc-500">
+      <footer className="w-full border-t border-zinc-900 bg-zinc-950/90 py-3 text-center text-xs text-zinc-500">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
             K-SMART: Kannada Semantic-preserving Minimization &amp; Adaptive Representation Technique

@@ -2,6 +2,83 @@ import { KSmartResponse } from '../types/ksmart';
 
 export function getMockKSmartResponse(prompt: string): KSmartResponse {
   const trimmed = prompt.trim();
+  const lower = trimmed.toLowerCase().replace(/[!.,?]/g, '');
+
+  // Casual greetings ("hey", "hi", "hello", "ನಮಸ್ಕಾರ")
+  const isGreeting =
+    lower === 'hey' ||
+    lower === 'hi' ||
+    lower === 'hello' ||
+    lower === 'namaskara' ||
+    lower === 'namaste' ||
+    trimmed === 'ನಮಸ್ಕಾರ' ||
+    trimmed === 'ನಮಸ್ಕಾರ!' ||
+    lower.startsWith('hey ') ||
+    lower.startsWith('hi ') ||
+    lower.startsWith('hello ') ||
+    trimmed.startsWith('ನಮಸ್ಕಾರ');
+
+  if (isGreeting) {
+    return {
+      original: {
+        text: prompt,
+        tokens: 4,
+      },
+      selected: {
+        strategy: 'conversational_passthrough',
+        text: prompt,
+        tokens: 4,
+        similarity_score: 1.0,
+        tokens_saved: 0,
+        savings_percent: 0,
+      },
+      candidates: [
+        {
+          strategy: 'original',
+          text: prompt,
+          tokens: 4,
+          similarity: 1.0,
+          passed_guard: true,
+        },
+        {
+          strategy: 'conversational_passthrough',
+          text: prompt,
+          tokens: 4,
+          similarity: 1.0,
+          passed_guard: true,
+        },
+        {
+          strategy: 'concise_kannada',
+          text: 'ನಮಸ್ಕಾರ',
+          tokens: 3,
+          similarity: 0.98,
+          passed_guard: true,
+        },
+        {
+          strategy: 'normalized_raw',
+          text: prompt,
+          tokens: 4,
+          similarity: 1.0,
+          passed_guard: true,
+        },
+        {
+          strategy: 'extreme_trimmed',
+          text: 'ಹಾಯ್',
+          tokens: 1,
+          similarity: 0.7,
+          passed_guard: false,
+        },
+      ],
+      llm_response:
+        'ನಮಸ್ಕಾರ! (Hey!) Ask me anything in Kannada or English—I\'ll optimize your prompt behind the scenes to save tokens while preserving full meaning.',
+      metrics: {
+        optimization_latency_ms: 24,
+        llm_latency_ms: 410,
+        total_latency_ms: 434,
+        output_tokens: 34,
+      },
+    };
+  }
 
   // Preset 1: Verbose Travel (contains "ಬೆಂಗಳೂರು")
   if (trimmed.includes('ಬೆಂಗಳೂರು') || trimmed.includes('ಪ್ರವಾಸಿ')) {
