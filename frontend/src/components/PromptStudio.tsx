@@ -24,6 +24,8 @@ interface PromptStudioProps {
   onSendMessage: (text: string, mode: OptimizationMode) => void;
   mode: OptimizationMode;
   onModeChange: (mode: OptimizationMode) => void;
+  optimize?: boolean;
+  onOptimizeChange?: (optimize: boolean) => void;
   error?: string | null;
   onSwitchToMock?: () => void;
 }
@@ -35,6 +37,8 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   onSendMessage,
   mode,
   onModeChange,
+  optimize = true,
+  onOptimizeChange,
   error,
   onSwitchToMock,
 }) => {
@@ -157,19 +161,36 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
 
         {/* Compact Bottom Toolbar inside Box */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-800/60">
-          <div className="flex items-center gap-2">
-            <label htmlFor="chat-mode" className="text-[11px] text-zinc-500 font-medium">
-              Mode:
-            </label>
-            <select
-              id="chat-mode"
-              value={mode === 'compare_all' ? 'compare' : mode}
-              onChange={(e) => onModeChange(e.target.value as OptimizationMode)}
-              className="bg-zinc-950/90 border border-zinc-800 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="adaptive">Adaptive Selection</option>
-              <option value="compare">Compare All E0–E3</option>
-            </select>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="chat-mode" className="text-[11px] text-zinc-500 font-medium">
+                Mode:
+              </label>
+              <select
+                id="chat-mode"
+                value={mode === 'compare_all' ? 'compare' : mode}
+                onChange={(e) => onModeChange(e.target.value as OptimizationMode)}
+                className="bg-zinc-950/90 border border-zinc-800 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              >
+                <option value="adaptive">Adaptive Selection</option>
+                <option value="compare">Compare All E0–E3</option>
+              </select>
+            </div>
+
+            {onOptimizeChange && (
+              <label className="flex items-center gap-1.5 text-[11px] text-zinc-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="toggle-optimize"
+                  checked={optimize}
+                  onChange={(e) => onOptimizeChange(e.target.checked)}
+                  className="rounded border-zinc-800 bg-zinc-950 text-indigo-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                />
+                <span className={optimize ? 'text-indigo-400 font-medium' : 'text-zinc-500'}>
+                  Optimize
+                </span>
+              </label>
+            )}
           </div>
 
           <button

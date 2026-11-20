@@ -109,6 +109,11 @@ class GeminiService:
             )
         return self._client
 
+    @property
+    def client(self) -> genai.Client:
+        """Safely exposes the lazily initialized official SDK client."""
+        return self._get_client()
+
     def _is_transient_error(self, err: Exception) -> tuple[bool, Optional[float]]:
         """
         Determines whether an error is transient and eligible for retry.

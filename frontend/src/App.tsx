@@ -11,6 +11,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
   const [mockMode, setMockMode] = useState<boolean>(true);
   const [mode, setMode] = useState<OptimizationMode>('adaptive');
+  const [optimize, setOptimize] = useState<boolean>(true);
   const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
   const [apiStatus, setApiStatus] = useState<'connected' | 'offline' | null>(null);
 
@@ -83,7 +84,7 @@ export const App: React.FC = () => {
       }
 
       // 3. Resolve response data via live FastAPI client or mock engine
-      const responseData = await optimizeAndRun(promptText, selectedMode, mockMode);
+      const responseData = await optimizeAndRun(promptText, selectedMode, mockMode, optimize);
 
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -165,6 +166,8 @@ export const App: React.FC = () => {
             onSendMessage={handleSendMessage}
             mode={mode}
             onModeChange={setMode}
+            optimize={optimize}
+            onOptimizeChange={setOptimize}
             error={error}
             onSwitchToMock={handleSwitchToMock}
           />

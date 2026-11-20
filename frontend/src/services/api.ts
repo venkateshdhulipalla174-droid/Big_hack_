@@ -253,7 +253,8 @@ export const PRESETS: PromptPreset[] = [
 export async function optimizeAndRun(
   prompt: string,
   mode: string = 'adaptive',
-  useMock: boolean = true
+  useMock: boolean = true,
+  optimize: boolean = true
 ): Promise<KSmartResponse> {
   if (useMock) {
     return getMockKSmartResponse(prompt);
@@ -263,6 +264,7 @@ export async function optimizeAndRun(
   const response = await apiClient.post<any>('/api/v1/chat', {
     prompt,
     mode,
+    optimize,
   });
 
   return normalizeKSmartResponse(response.data, prompt);
