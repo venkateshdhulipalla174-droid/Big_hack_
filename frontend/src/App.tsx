@@ -5,17 +5,29 @@ import { optimizeAndRun } from './services/api';
 import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
 import { BenchmarkView } from './components/BenchmarkView';
+import { ArchitectureModal } from './components/ArchitectureModal';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
   const [mockMode, setMockMode] = useState<boolean>(true);
   const [mode, setMode] = useState<OptimizationMode>('adaptive');
+  const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
 
   // Conversational Chat Messages State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cumulative Session Telemetry
+  const sessionOriginalTokens = messages.reduce(
+    (acc, msg) => acc + (msg.ksmartData ? msg.ksmartData.original.tokens : 0),
+    0
+  );
+  const sessionSavedTokens = messages.reduce(
+    (acc, msg) => acc + (msg.ksmartData ? msg.ksmartData.selected.tokens_saved : 0),
+    0
+  );
 
   const handleSendMessage = async (promptText: string, selectedMode: OptimizationMode) => {
     setError(null);
@@ -104,6 +116,9 @@ export const App: React.FC = () => {
         }}
         hasMessages={messages.length > 0}
         onNewChat={handleNewChat}
+        sessionOriginalTokens={sessionOriginalTokens}
+        sessionSavedTokens={sessionSavedTokens}
+        onOpenArchitecture={() => setIsArchitectureOpen(true)}
       />
 
       {/* Main Workspace */}
@@ -131,6 +146,12 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* 4-Stage Middleware Architecture Modal */}
+      <ArchitectureModal
+        isOpen={isArchitectureOpen}
+        onClose={() => setIsArchitectureOpen(false)}
+      />
 
       {/* Sleek Minimal Footer */}
       <footer className="w-full border-t border-zinc-900 bg-zinc-950/90 py-3 text-center text-xs text-zinc-500">

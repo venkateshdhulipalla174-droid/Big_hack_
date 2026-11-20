@@ -20,6 +20,9 @@ import {
   Sparkles,
   AlertTriangle,
   CheckCircle2,
+  Sliders,
+  Calculator,
+  Zap,
 } from 'lucide-react';
 
 type MetricType = 'tokens' | 'latency';
@@ -154,6 +157,19 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, metric }
 
 export const BenchmarkView: React.FC = () => {
   const [metric, setMetric] = useState<MetricType>('tokens');
+  const [queries, setQueries] = useState<number>(1000000);
+
+  const tokensEliminated = queries * 18;
+  const costSavedMonthly = (tokensEliminated / 1_000_000) * 7.89;
+  const costSavedAnnual = costSavedMonthly * 12;
+
+  const PRESETS = [
+    { label: '100K', value: 100000 },
+    { label: '500K', value: 500000 },
+    { label: '1M', value: 1000000 },
+    { label: '5M', value: 5000000 },
+    { label: '10M', value: 10000000 },
+  ];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -487,6 +503,137 @@ export const BenchmarkView: React.FC = () => {
             (-38.4%) and semantic fidelity (92.6%) with the lowest latency (1,180 ms).
           </span>
           <span className="font-mono text-zinc-400">Baseline = E0 (Original)</span>
+        </div>
+      </div>
+
+      {/* Production Scale Impact Simulator Card */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl shadow-black/20 space-y-6">
+        {/* Simulator Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.25)]">
+              <Sliders className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold tracking-tight text-zinc-100">
+                  Production Scale Impact Simulator
+                </h3>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ROI Model
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Projected monthly savings deploying E2 K-SMART into production environments (18 tokens saved/query vs E0).
+              </p>
+            </div>
+          </div>
+
+          {/* Preset Buttons */}
+          <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-xl border border-zinc-800/80 self-start sm:self-auto">
+            <span className="text-[11px] text-zinc-500 px-2 font-medium">Presets:</span>
+            {PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => setQueries(p.value)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                  queries === p.value
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Interactive Slider Section */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-zinc-400 font-medium flex items-center gap-1.5">
+              <Calculator className="w-3.5 h-3.5 text-indigo-400" />
+              Adjust Monthly Query Volume:
+            </span>
+            <span className="text-sm font-bold font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-md border border-indigo-500/20">
+              {queries.toLocaleString()} queries / month
+            </span>
+          </div>
+
+          <input
+            type="range"
+            min={10000}
+            max={10000000}
+            step={10000}
+            value={queries}
+            onChange={(e) => setQueries(Number(e.target.value))}
+            className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
+          />
+
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+            <span>10,000 queries</span>
+            <span>2,500,000</span>
+            <span>5,000,000</span>
+            <span>7,500,000</span>
+            <span>10,000,000 queries</span>
+          </div>
+        </div>
+
+        {/* 3-Column ROI KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Card 1 */}
+          <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-4 space-y-1">
+            <div className="flex items-center justify-between text-zinc-400 text-xs">
+              <span>Monthly Queries</span>
+              <Zap className="w-3.5 h-3.5 text-zinc-500" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-zinc-100">
+              {queries.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              {(queries * 46).toLocaleString()} baseline E0 tokens
+            </p>
+          </div>
+
+          {/* Card 2 */}
+          <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-xl p-4 space-y-1">
+            <div className="flex items-center justify-between text-zinc-400 text-xs">
+              <span>Tokens Eliminated</span>
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-indigo-400">
+              {tokensEliminated.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              -18 tokens saved/query (-38.4%)
+            </p>
+          </div>
+
+          {/* Card 3 */}
+          <div className="bg-zinc-950/70 border border-emerald-500/20 rounded-xl p-4 space-y-1 shadow-[0_0_15px_rgba(52,211,153,0.06)]">
+            <div className="flex items-center justify-between text-emerald-400 text-xs">
+              <span className="font-medium">Est. Cost Saved / Month</span>
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-emerald-400">
+              ${costSavedMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              ${costSavedAnnual.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/yr run-rate savings
+            </p>
+          </div>
+        </div>
+
+        {/* Footer Methodology Note */}
+        <div className="pt-3 border-t border-zinc-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-zinc-500">
+          <div className="flex items-center gap-1.5 text-zinc-400">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>
+              Calculated using Gemini standard input pricing (~$7.89/1M sub-word tokens) and empirical 18 tokens saved per query.
+            </span>
+          </div>
+          <span className="font-mono text-zinc-400 shrink-0">Annual ROI = 12 × Monthly</span>
         </div>
       </div>
     </div>
