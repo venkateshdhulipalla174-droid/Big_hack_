@@ -6,6 +6,8 @@ import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
 import { PipelineStepper } from './components/PipelineStepper';
 import { AchievementMetrics } from './components/AchievementMetrics';
+import { PromptComparison } from './components/PromptComparison';
+import { CandidateAnalytics } from './components/CandidateAnalytics';
 import { ResponseCard } from './components/ResponseCard';
 import { BenchmarkPlaceholder } from './components/BenchmarkPlaceholder';
 
@@ -13,7 +15,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
   const [mockMode, setMockMode] = useState<boolean>(true);
 
-  // Step 2 Pipeline & Optimization State
+  // Step 2 & 4 Pipeline & Optimization State
   const [activeStep, setActiveStep] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [ksmartResponse, setKsmartResponse] = useState<KSmartResponse | null>(null);
@@ -65,7 +67,6 @@ export const App: React.FC = () => {
               mockMode={mockMode}
               isRunning={isRunning}
               onOptimize={handleOptimizeAndRun}
-              ksmartResponse={ksmartResponse}
             />
 
             {/* Step 2 UI: Pipeline Progress Stepper */}
@@ -75,10 +76,12 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Step 2 UI: Achievement Metrics & Gemini Response Card */}
+            {/* Step 2 & 4 UI: Metrics, Comparison, Candidate Analytics, & Response Card */}
             {ksmartResponse && !isRunning && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <AchievementMetrics data={ksmartResponse} />
+                <PromptComparison data={ksmartResponse} />
+                <CandidateAnalytics data={ksmartResponse} />
                 <ResponseCard
                   response={ksmartResponse.llm_response}
                   outputTokens={ksmartResponse.metrics.output_tokens}
