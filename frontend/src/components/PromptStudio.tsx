@@ -24,23 +24,6 @@ interface PromptStudioProps {
   onModeChange: (mode: OptimizationMode) => void;
 }
 
-const SUGGESTIONS = [
-  {
-    title: 'Top 3 places to visit in Bengaluru',
-    prompt:
-      'ದಯವಿಟ್ಟು ನನಗೆ ಬೆಂಗಳೂರಿನಲ್ಲಿ ಭೇಟಿ ನೀಡಬಹುದಾದ 3 ಪ್ರಮುಖ ಪ್ರವಾಸಿ ಸ್ಥಳಗಳ ಬಗ್ಗೆ ಸ್ವಲ್ಪ ವಿವರವಾಗಿ ಮಾಹಿತಿ ನೀಡಿ. ತುಂಬಾ ಧನ್ಯವಾದಗಳು!',
-  },
-  {
-    title: '4 steps to learn Python programming',
-    prompt:
-      'ನಮಸ್ಕಾರ, ನನಗೆ ಒಂದು ಸಹಾಯ ಬೇಕಿತ್ತು... ಪೈಥಾನ್ (Python) ಪ್ರೋಗ್ರಾಮಿಂಗ್ ಭಾಷೆಯನ್ನು ಕಲಿಯಲು ಉತ್ತಮವಾದ 4 ಹಂತಗಳನ್ನು ದಯವಿಟ್ಟು ತಿಳಿಸಿಕೊಡಿ.',
-  },
-  {
-    title: 'What is the capital of Karnataka?',
-    prompt: 'ಕರ್ನಾಟಕದ ರಾಜಧಾನಿ ಯಾವುದು?',
-  },
-];
-
 export const PromptStudio: React.FC<PromptStudioProps> = ({
   messages,
   isRunning,
@@ -133,25 +116,6 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
           <p className="mt-2 text-sm text-zinc-400">
             ನಮಸ್ಕಾರ! ಕೇಳಿ — K-SMART optimizes every prompt automatically.
           </p>
-
-          {/* 3 Clickable Suggestion Pills */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl mt-8">
-            {SUGGESTIONS.map((s, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSend(s.prompt)}
-                className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-850 text-left transition-all duration-200 group flex flex-col justify-between shadow-md"
-              >
-                <span className="text-xs sm:text-sm font-medium text-zinc-200 group-hover:text-indigo-300 transition-colors">
-                  {s.title}
-                </span>
-                <span className="text-[11px] text-zinc-500 mt-2 line-clamp-2 font-sans">
-                  {s.prompt}
-                </span>
-              </button>
-            ))}
-          </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-6 py-6">
