@@ -9,7 +9,7 @@ import { AchievementMetrics } from './components/AchievementMetrics';
 import { PromptComparison } from './components/PromptComparison';
 import { CandidateAnalytics } from './components/CandidateAnalytics';
 import { ResponseCard } from './components/ResponseCard';
-import { BenchmarkPlaceholder } from './components/BenchmarkPlaceholder';
+import { BenchmarkView } from './components/BenchmarkView';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
@@ -90,7 +90,7 @@ export const App: React.FC = () => {
             )}
           </div>
         ) : (
-          <BenchmarkPlaceholder />
+          <BenchmarkView />
         )}
       </main>
 
