@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TabType, OptimizationMode } from './types';
 import { ChatMessage } from './types/ksmart';
-import { getMockKSmartResponse } from './data/mockResponses';
+import { optimizeAndRun } from './services/api';
 import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
 import { BenchmarkView } from './components/BenchmarkView';
@@ -15,8 +15,11 @@ export const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSendMessage = async (promptText: string, selectedMode: OptimizationMode) => {
+    setError(null);
+
     // 1. Add user message immediately
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -29,36 +32,63 @@ export const App: React.FC = () => {
     setIsRunning(true);
     setActiveStep(1); // Step 1: Unicode Normalize
 
-    // 2. Animate pipeline 1 to 4 (~1.2s total, 300ms per step)
-    await new Promise((r) => setTimeout(r, 300));
-    setActiveStep(2); // Step 2: Generate 5 Candidates
+    try {
+      // 2. Animate pipeline 1 to 4 (~1.2s total, 300ms per step)
+      await new Promise((r) => setTimeout(r, 300));
+      setActiveStep(2); // Step 2: Generate 5 Candidates
 
-    await new Promise((r) => setTimeout(r, 300));
-    setActiveStep(3); // Step 3: Meaning Guard & Tokenize
+      await new Promise((r) => setTimeout(r, 300));
+      setActiveStep(3); // Step 3: Meaning Guard & Tokenize
 
-    await new Promise((r) => setTimeout(r, 300));
-    setActiveStep(4); // Step 4: Gemini API Response
+      await new Promise((r) => setTimeout(r, 300));
+      setActiveStep(4); // Step 4: Gemini API Response
 
-    await new Promise((r) => setTimeout(r, 300));
+      // In mock mode add a tiny extra delay so step 4 is clearly perceptible
+      if (mockMode) {
+        await new Promise((r) => setTimeout(r, 300));
+      }
 
-    // 3. Resolve response data
-    const responseData = getMockKSmartResponse(promptText);
-    const assistantMsg: ChatMessage = {
-      id: `assistant-${Date.now()}`,
-      role: 'assistant',
-      content: responseData.llm_response,
-      timestamp: Date.now(),
-      ksmartData: responseData,
-    };
+      // 3. Resolve response data via live FastAPI client or mock engine
+      const responseData = await optimizeAndRun(promptText, selectedMode, mockMode);
 
-    setMessages((prev) => [...prev, assistantMsg]);
-    setIsRunning(false);
+      const assistantMsg: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: responseData.llm_response,
+        timestamp: Date.now(),
+        ksmartData: responseData,
+      };
+
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (err: unknown) {
+      console.error('K-SMART request failed:', err);
+
+      let errorMessage = 'Failed to connect to backend at http://localhost:8000. Is FastAPI server running?';
+      if (typeof err === 'object' && err !== null) {
+        const errorObj = err as { response?: { data?: { detail?: string } }; message?: string };
+        if (errorObj.response?.data?.detail) {
+          errorMessage = errorObj.response.data.detail;
+        } else if (errorObj.message) {
+          errorMessage = errorObj.message;
+        }
+      }
+
+      setError(`Live API Error: ${errorMessage}`);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleSwitchToMock = () => {
+    setMockMode(true);
+    setError(null);
   };
 
   const handleNewChat = () => {
     setMessages([]);
     setActiveStep(0);
     setIsRunning(false);
+    setError(null);
   };
 
   return (
@@ -68,7 +98,10 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         mockMode={mockMode}
-        onToggleMockMode={() => setMockMode((prev) => !prev)}
+        onToggleMockMode={() => {
+          setMockMode((prev) => !prev);
+          setError(null);
+        }}
         hasMessages={messages.length > 0}
         onNewChat={handleNewChat}
       />
@@ -89,6 +122,8 @@ export const App: React.FC = () => {
             onSendMessage={handleSendMessage}
             mode={mode}
             onModeChange={setMode}
+            error={error}
+            onSwitchToMock={handleSwitchToMock}
           />
         ) : (
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
