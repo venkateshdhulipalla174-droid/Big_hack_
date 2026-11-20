@@ -9,13 +9,28 @@ interface PromptComparisonProps {
 export const PromptComparison: React.FC<PromptComparisonProps> = ({ data }) => {
   const { original, selected } = data;
 
+  const originalTokens = original.tokens;
+  const optimizedTokens = selected.tokens;
+  const optimizedPrompt = selected.text;
+
+  const compressionRatio =
+    optimizedTokens > 0 ? (originalTokens / optimizedTokens).toFixed(2) : '1.00';
+  const charsPerToken =
+    optimizedTokens > 0 ? (optimizedPrompt.length / optimizedTokens).toFixed(1) : '0.0';
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl shadow-black/20 space-y-3">
-      <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-800">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-zinc-300">Prompt Comparison</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
             Strategy: {selected.strategy}
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
+            Compression: {compressionRatio}×
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+            Density: {charsPerToken} chars/tok
           </span>
         </div>
         <div className="text-xs font-semibold text-emerald-400">

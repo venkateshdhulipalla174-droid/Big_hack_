@@ -28,6 +28,26 @@ interface PromptStudioProps {
   onSwitchToMock?: () => void;
 }
 
+const DEMO_SAMPLES = [
+  {
+    title: 'Verbose Travel (48 tok)',
+    prompt:
+      'ದಯವಿಟ್ಟು ನನಗೆ ಬೆಂಗಳೂರಿನಲ್ಲಿ ಭೇಟಿ ನೀಡಬಹುದಾದ 3 ಪ್ರಮುಖ ಪ್ರವಾಸಿ ಸ್ಥಳಗಳ ಬಗ್ಗೆ ಸ್ವಲ್ಪ ವಿವರವಾಗಿ ಮಾಹಿತಿ ನೀಡಿ. ತುಂಬಾ ಧನ್ಯವಾದಗಳು!',
+    badge: '48 tok → 26 tok (-45.8%)',
+  },
+  {
+    title: 'Polite Tech (44 tok)',
+    prompt:
+      'ನಮಸ್ಕಾರ, ನನಗೆ ಒಂದು ಸಹಾಯ ಬೇಕಿತ್ತು... ಪೈಥಾನ್ (Python) ಪ್ರೋಗ್ರಾಮಿಂಗ್ ಭಾಷೆಯನ್ನು ಕಲಿಯಲು ಉತ್ತಮವಾದ 4 ಹಂತಗಳನ್ನು ದಯವಿಟ್ಟು ತಿಳಿಸಿಕೊಡಿ.',
+    badge: '44 tok → 25 tok (-43.2%)',
+  },
+  {
+    title: 'Short Fallback (12 tok)',
+    prompt: 'ಕರ್ನಾಟಕದ ರಾಜಧಾನಿ ಯಾವುದು?',
+    badge: '12 tok (0.0% Passthrough)',
+  },
+];
+
 export const PromptStudio: React.FC<PromptStudioProps> = ({
   messages,
   isRunning,
@@ -41,9 +61,33 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   const [input, setInput] = useState<string>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSamplesOpen, setIsSamplesOpen] = useState<boolean>(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const samplesRef = useRef<HTMLDivElement>(null);
+
+  // Close samples menu on click outside or Escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (samplesRef.current && !samplesRef.current.contains(e.target as Node)) {
+        setIsSamplesOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSamplesOpen(false);
+      }
+    };
+    if (isSamplesOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSamplesOpen]);
 
   // Auto-expand latest assistant message by default, and ensure compare mode messages are auto-expanded
   useEffect(() => {
@@ -92,6 +136,20 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error('Failed to copy text:', err);
+    }
+  };
+
+  const handleSelectSample = (samplePrompt: string) => {
+    setInput(samplePrompt);
+    setIsSamplesOpen(false);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.style.height = 'auto';
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 128)}px`;
+        }
+      }, 0);
     }
   };
 
@@ -170,6 +228,45 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
               <option value="adaptive">Adaptive Selection</option>
               <option value="compare">Compare All E0–E3</option>
             </select>
+
+            {/* Subtle Samples Menu Button */}
+            <div className="relative" ref={samplesRef}>
+              <button
+                type="button"
+                onClick={() => setIsSamplesOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                title="Inject a demo Kannada preset"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Samples</span>
+              </button>
+
+              {/* Upward-Opening Menu */}
+              {isSamplesOpen && (
+                <div className="absolute left-0 bottom-full mb-2 z-50 bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-2xl w-80 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1.5 flex items-center justify-between">
+                    <span>Demo Kannada Presets</span>
+                    <span className="text-[9px] text-indigo-400 font-semibold">1-Click Inject</span>
+                  </div>
+                  {DEMO_SAMPLES.map((sample, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectSample(sample.prompt)}
+                      className="w-full text-left p-2 rounded-lg hover:bg-zinc-800/80 transition-colors group cursor-pointer"
+                    >
+                      <div className="text-xs font-medium text-zinc-200 group-hover:text-indigo-300 transition-colors flex items-center justify-between">
+                        <span>{sample.title}</span>
+                        <span className="text-[10px] font-mono text-emerald-400/90">{sample.badge}</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5 font-sans">
+                        {sample.prompt}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <button

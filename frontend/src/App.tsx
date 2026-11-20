@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TabType, OptimizationMode } from './types';
 import { ChatMessage } from './types/ksmart';
 import { optimizeAndRun, checkBackendHealth } from './services/api';
@@ -126,6 +126,26 @@ export const App: React.FC = () => {
     setIsRunning(false);
     setError(null);
   };
+
+  // Global Keyboard Shortcuts (Ctrl+K / Cmd+K for New Chat, Escape for modals)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ctrl + K or Cmd + K: New Chat when messages exist
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (messages.length > 0) {
+          handleNewChat();
+        }
+      }
+      // Escape: Close Architecture Modal or reset error
+      if (e.key === 'Escape') {
+        setIsArchitectureOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [messages.length]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
