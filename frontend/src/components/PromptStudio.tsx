@@ -16,6 +16,7 @@ import { ChatMessage } from '../types/ksmart';
 import { PipelineStepper } from './PipelineStepper';
 import { PromptComparison } from './PromptComparison';
 import { CandidateAnalytics } from './CandidateAnalytics';
+import { OptimizerComparisonCard } from './OptimizerComparisonCard';
 
 interface PromptStudioProps {
   messages: ChatMessage[];
@@ -369,6 +370,13 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                       <div className="text-zinc-100 leading-relaxed whitespace-pre-line text-sm sm:text-base font-sans selection:bg-indigo-500/30 selection:text-white">
                         {msg.content}
                       </div>
+
+                      {/* Head-to-Head Without Optimizer vs. With K-SMART Comparison Card */}
+                      {msg.ksmartData && (
+                        <div className="mt-3 animate-in fade-in duration-200">
+                          <OptimizerComparisonCard data={msg.ksmartData} />
+                        </div>
+                      )}
 
                       {/* Compact K-SMART Measurable Impact Bar */}
                       {msg.ksmartData && (

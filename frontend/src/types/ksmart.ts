@@ -27,6 +27,8 @@ export interface KSmartResponse {
     total_latency_ms: number;
     output_tokens: number;
   };
+  baseline_latency_ms?: number | null;
+  optimized_latency_ms?: number;
 }
 
 export interface ChatMessage {

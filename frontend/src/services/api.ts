@@ -189,6 +189,28 @@ export function normalizeKSmartResponse(raw: any, prompt: string): KSmartRespons
     Math.max(1, Math.round(String(raw?.llm_response || raw?.response || '').length * 0.35))
   );
 
+  // Baseline latency: strictly from backend, or null if missing (do NOT fabricate fake numbers)
+  let baselineLatencyMs: number | null = null;
+  if (raw?.baseline_latency_ms != null && typeof raw.baseline_latency_ms === 'number') {
+    baselineLatencyMs = Math.round(raw.baseline_latency_ms);
+  } else if (raw?.baseline_response_time_s != null && typeof raw.baseline_response_time_s === 'number') {
+    baselineLatencyMs = Math.round(raw.baseline_response_time_s * 1000);
+  } else if (raw?.metrics?.baseline_latency_ms != null && typeof raw.metrics.baseline_latency_ms === 'number') {
+    baselineLatencyMs = Math.round(raw.metrics.baseline_latency_ms);
+  }
+
+  // Optimized latency: read from backend or compute from (processing_time_ms || 0) + (llm_response_time_s || 0) * 1000
+  let optimizedLatencyMs: number;
+  if (raw?.optimized_latency_ms != null && typeof raw.optimized_latency_ms === 'number') {
+    optimizedLatencyMs = Math.round(raw.optimized_latency_ms);
+  } else if (raw?.processing_time_ms != null || raw?.llm_response_time_s != null) {
+    optimizedLatencyMs = Math.round(
+      (Number(raw?.processing_time_ms) || 0) + (Number(raw?.llm_response_time_s) || 0) * 1000
+    );
+  } else {
+    optimizedLatencyMs = totalLatency;
+  }
+
   return {
     original: {
       text: originalText,
@@ -212,6 +234,8 @@ export function normalizeKSmartResponse(raw: any, prompt: string): KSmartRespons
       total_latency_ms: totalLatency,
       output_tokens: outputTokens,
     },
+    baseline_latency_ms: baselineLatencyMs,
+    optimized_latency_ms: optimizedLatencyMs,
   };
 }
 
