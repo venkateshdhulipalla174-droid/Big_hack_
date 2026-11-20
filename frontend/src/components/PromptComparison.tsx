@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileText, ArrowRight } from 'lucide-react';
-import { KSmartResponse } from '../types/ksmart';
+import { KSmartResponse, formatStrategyName } from '../types/ksmart';
 
 interface PromptComparisonProps {
   data: KSmartResponse;
@@ -24,7 +24,7 @@ export const PromptComparison: React.FC<PromptComparisonProps> = ({ data }) => {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-zinc-300">Prompt Comparison</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-            Strategy: {selected.strategy}
+            Strategy: {formatStrategyName(selected.strategy)}
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
             Compression: {compressionRatio}×

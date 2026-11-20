@@ -9,7 +9,7 @@ import {
   Cell,
 } from 'recharts';
 import { BarChart2, Table, ChevronDown, ChevronRight, CheckCircle2, XCircle, Award } from 'lucide-react';
-import { KSmartResponse } from '../types/ksmart';
+import { KSmartResponse, formatStrategyName } from '../types/ksmart';
 
 interface CandidateAnalyticsProps {
   data: KSmartResponse;
@@ -23,32 +23,6 @@ interface ChartItem {
   passed_guard: boolean;
   is_selected: boolean;
 }
-
-const formatStrategyName = (strategy: string): string => {
-  switch (strategy) {
-    case 'original':
-      return 'Original';
-    case 'concise_kannada':
-      return 'Concise Kannada';
-    case 'structured_kannada':
-      return 'Structured';
-    case 'morphological_compact':
-      return 'Morphological';
-    case 'extreme_trimmed':
-      return 'Extreme Trimmed';
-    case 'phonetic_romanized':
-      return 'English Trans.';
-    case 'normalized_raw':
-      return 'Normalized';
-    case 'aggressive_trimmed':
-      return 'Aggressive Trim';
-    default:
-      return strategy
-        .split('_')
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-  }
-};
 
 interface CustomTooltipProps {
   active?: boolean;

@@ -1,7 +1,5 @@
 import axios from 'axios';
-import { OptimizationMode, OptimizationResult, PromptPreset } from '../types';
-import { KSmartResponse, Candidate } from '../types/ksmart';
-import { getMockKSmartResponse } from '../data/mockResponses';
+import { KSmartResponse, Candidate, BenchmarkDataPoint } from '../types/ksmart';
 
 const FALLBACK_API_URL = 'http://localhost:8000';
 const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || FALLBACK_API_URL;
@@ -85,130 +83,86 @@ export async function checkBackendHealth(): Promise<boolean> {
 }
 
 /**
- * Safely normalizes arbitrary responses from FastAPI backend to prevent runtime undefined errors.
+ * Safely normalizes arbitrary live responses from the FastAPI backend to prevent runtime errors.
+ * Never fabricates mock candidates or fake latency metrics.
  */
 export function normalizeKSmartResponse(raw: any, prompt: string): KSmartResponse {
   const originalText = String(
-    raw?.original?.text || raw?.original_prompt || raw?.original?.prompt || prompt
+    raw?.original_prompt || raw?.original?.text || raw?.original?.prompt || prompt
   );
   const originalTokens = Number(
-    raw?.original?.tokens ?? Math.max(1, Math.round(originalText.length * 0.85))
+    raw?.original_tokens ?? raw?.original?.tokens ?? 0
   );
 
   const selectedText = String(
-    raw?.selected?.text || raw?.optimized_prompt || raw?.selected_text || originalText
+    raw?.optimized_prompt || raw?.selected?.text || raw?.selected_text || originalText
   );
   const selectedTokens = Number(
-    raw?.selected?.tokens ?? Math.max(1, Math.round(selectedText.length * 0.85))
+    raw?.optimized_tokens ?? raw?.selected?.tokens ?? 0
   );
   const tokensSaved = Number(
-    raw?.selected?.tokens_saved ?? Math.max(0, originalTokens - selectedTokens)
+    raw?.tokens_saved ?? raw?.selected?.tokens_saved ?? Math.max(0, originalTokens - selectedTokens)
   );
   const savingsPercent = Number(
-    raw?.selected?.savings_percent ??
+    raw?.savings_percent ??
+      raw?.selected?.savings_percent ??
       (originalTokens > 0 ? (tokensSaved / originalTokens) * 100 : 0)
   );
-  const similarityScore = Number(
-    raw?.selected?.similarity_score ?? raw?.similarity_score ?? 0.92
-  );
   const strategy = String(
-    raw?.selected?.strategy || raw?.strategy || 'concise_kannada'
+    raw?.selected_strategy || raw?.selected?.strategy || raw?.strategy || 'concise'
   );
+  const similarityScore =
+    raw?.similarity_score != null
+      ? Number(raw.similarity_score)
+      : raw?.selected?.similarity_score != null
+      ? Number(raw.selected.similarity_score)
+      : 0;
 
-  // Defensive candidates normalization
+  // Map only real candidates from the backend; default safely to [] if omitted
   let candidates: Candidate[] = [];
   if (Array.isArray(raw?.candidates) && raw.candidates.length > 0) {
     candidates = raw.candidates.map((c: any) => ({
-      strategy: String(c.strategy || 'Candidate'),
+      strategy: String(c.strategy || c.name || 'Candidate'),
       text: String(c.text || c.prompt || ''),
-      tokens: Number(c.tokens ?? Math.max(1, Math.round(String(c.text || '').length * 0.85))),
-      similarity: Number(c.similarity ?? c.similarity_score ?? 0.9),
+      tokens: Number(c.tokens ?? 0),
+      similarity: Number(c.similarity ?? c.similarity_score ?? 0),
       passed_guard: Boolean(c.passed_guard ?? true),
     }));
-  } else {
-    // Generate synthetic candidates from response data if backend omitted candidates array
-    candidates = [
-      {
-        strategy: 'Original',
-        text: originalText,
-        tokens: originalTokens,
-        similarity: 1.0,
-        passed_guard: true,
-      },
-      {
-        strategy: 'Normalized',
-        text: originalText.normalize('NFC').trim(),
-        tokens: Math.max(1, Math.round(originalTokens * 0.91)),
-        similarity: 0.99,
-        passed_guard: true,
-      },
-      {
-        strategy: 'Concise Kannada',
-        text: selectedText,
-        tokens: selectedTokens,
-        similarity: similarityScore,
-        passed_guard: true,
-      },
-      {
-        strategy: 'Structured',
-        text: `Key: ${selectedText}`,
-        tokens: Math.max(1, Math.round(selectedTokens * 1.1)),
-        similarity: 0.88,
-        passed_guard: true,
-      },
-      {
-        strategy: 'English Trans.',
-        text: 'English translated representation',
-        tokens: Math.max(1, Math.round(selectedTokens * 0.72)),
-        similarity: 0.84,
-        passed_guard: false,
-      },
-    ];
   }
 
-  // Defensive metrics normalization (support processing_time_ms, etc.)
-  const optLatency = Number(
-    raw?.metrics?.optimization_latency_ms ??
-    raw?.processing_time_ms ??
-    raw?.optimization_latency_ms ??
-    78
+  // Processing & LLM Latency
+  const processingTimeMs = Number(
+    raw?.processing_time_ms ?? raw?.metrics?.optimization_latency_ms ?? 0
   );
-  const llmLatency = Number(
-    raw?.metrics?.llm_latency_ms ??
-    raw?.llm_latency_ms ??
-    1100
+  const llmResponseTimeS = Number(
+    raw?.llm_response_time_s ??
+      (raw?.metrics?.llm_latency_ms ? raw.metrics.llm_latency_ms / 1000 : 0)
   );
-  const totalLatency = Number(
-    raw?.metrics?.total_latency_ms ??
-    raw?.total_latency_ms ??
-    (optLatency + llmLatency)
+  const llmLatencyMs = Math.round(llmResponseTimeS * 1000);
+  const totalLatencyMs = Number(
+    raw?.metrics?.total_latency_ms ?? processingTimeMs + llmLatencyMs
   );
-  const outputTokens = Number(
-    raw?.metrics?.output_tokens ??
-    raw?.output_tokens ??
-    Math.max(1, Math.round(String(raw?.llm_response || raw?.response || '').length * 0.35))
-  );
+  const outputTokens = Number(raw?.metrics?.output_tokens ?? 0);
 
-  // Baseline latency: strictly from backend, or null if missing (do NOT fabricate fake numbers)
+  // Baseline latency: strictly from backend, or null if missing (never fabricate fake numbers)
   let baselineLatencyMs: number | null = null;
   if (raw?.baseline_latency_ms != null && typeof raw.baseline_latency_ms === 'number') {
     baselineLatencyMs = Math.round(raw.baseline_latency_ms);
-  } else if (raw?.baseline_response_time_s != null && typeof raw.baseline_response_time_s === 'number') {
+  } else if (
+    raw?.baseline_response_time_s != null &&
+    typeof raw.baseline_response_time_s === 'number'
+  ) {
     baselineLatencyMs = Math.round(raw.baseline_response_time_s * 1000);
-  } else if (raw?.metrics?.baseline_latency_ms != null && typeof raw.metrics.baseline_latency_ms === 'number') {
-    baselineLatencyMs = Math.round(raw.metrics.baseline_latency_ms);
   }
 
-  // Optimized latency: read from backend or compute from (processing_time_ms || 0) + (llm_response_time_s || 0) * 1000
+  // Optimized latency
   let optimizedLatencyMs: number;
   if (raw?.optimized_latency_ms != null && typeof raw.optimized_latency_ms === 'number') {
     optimizedLatencyMs = Math.round(raw.optimized_latency_ms);
-  } else if (raw?.processing_time_ms != null || raw?.llm_response_time_s != null) {
-    optimizedLatencyMs = Math.round(
-      (Number(raw?.processing_time_ms) || 0) + (Number(raw?.llm_response_time_s) || 0) * 1000
-    );
+  } else if (processingTimeMs > 0 || llmResponseTimeS > 0) {
+    optimizedLatencyMs = Math.round(processingTimeMs + llmLatencyMs);
   } else {
-    optimizedLatencyMs = totalLatency;
+    optimizedLatencyMs = totalLatencyMs;
   }
 
   return {
@@ -229,9 +183,9 @@ export function normalizeKSmartResponse(raw: any, prompt: string): KSmartRespons
       raw?.llm_response || raw?.response || raw?.output || 'No response returned from backend.'
     ),
     metrics: {
-      optimization_latency_ms: optLatency,
-      llm_latency_ms: llmLatency,
-      total_latency_ms: totalLatency,
+      optimization_latency_ms: processingTimeMs,
+      llm_latency_ms: llmLatencyMs,
+      total_latency_ms: optimizedLatencyMs,
       output_tokens: outputTokens,
     },
     baseline_latency_ms: baselineLatencyMs,
@@ -239,151 +193,59 @@ export function normalizeKSmartResponse(raw: any, prompt: string): KSmartRespons
   };
 }
 
-export interface ChatResponse {
-  prompt: string;
-  response: string;
-}
-
-export const PRESETS: PromptPreset[] = [
-  {
-    id: 'verbose-travel',
-    name: 'Verbose Travel',
-    prompt: 'ದಯವಿಟ್ಟು ನನಗೆ ಬೆಂಗಳೂರಿನಲ್ಲಿ ಭೇಟಿ ನೀಡಬಹುದಾದ 3 ಪ್ರಮುಖ ಪ್ರವಾಸಿ ಸ್ಥಳಗಳ ಬಗ್ಗೆ ಸ್ವಲ್ಪ ವಿವರವಾಗಿ ಮಾಹಿತಿ ನೀಡಿ. ತುಂಬಾ ಧನ್ಯವಾದಗಳು!',
-    badge: 'E1 Redundancy Trim',
-  },
-  {
-    id: 'polite-tech',
-    name: 'Polite Tech',
-    prompt: 'ನಮಸ್ಕಾರ, ನನಗೆ ಒಂದು ಸಹಾಯ ಬೇಕಿತ್ತು... ಪೈಥಾನ್ (Python) ಪ್ರೋಗ್ರಾಮಿಂಗ್ ಭಾಷೆಯನ್ನು ಕಲಿಯಲು ಉತ್ತಮವಾದ 4 ಹಂತಗಳನ್ನು ದಯವಿಟ್ಟು ತಿಳಿಸಿಕೊಡಿ.',
-    badge: 'E2 Morphological',
-  },
-  {
-    id: 'short-fallback',
-    name: 'Short Fallback',
-    prompt: 'ಕರ್ನಾಟಕದ ರಾಜಧಾನಿ ಯಾವುದು?',
-    badge: 'E0 Passthrough',
-  },
-];
-
 /**
- * Optimizes the prompt and runs inference.
- * - In Mock Mode: returns realistic local Kannada data.
- * - In Live Mode: calls FastAPI POST /api/optimize-and-run.
+ * Optimizes the prompt and runs inference directly via live FastAPI backend.
+ * Calls POST /api/optimize-and-run on the configured base URL.
  */
 export async function optimizeAndRun(
   prompt: string,
-  mode: string = 'adaptive',
-  useMock: boolean = true
+  mode: string = 'adaptive'
 ): Promise<KSmartResponse> {
-  if (useMock) {
-    return getMockKSmartResponse(prompt);
-  }
-
-  const response = await apiClient.post<any>('/api/optimize-and-run', {
-    prompt,
-    mode,
-  });
+  const response = await apiClient.post<any>(
+    '/api/optimize-and-run',
+    {
+      prompt,
+      mode,
+    },
+    {
+      baseURL: getApiBaseUrl(),
+    }
+  );
 
   return normalizeKSmartResponse(response.data, prompt);
 }
 
-export async function optimizePrompt(
-  prompt: string,
-  mode: OptimizationMode,
-  mockMode: boolean = true
-): Promise<OptimizationResult> {
-  if (mockMode) {
-    // 1-second simulated delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const originalChars = prompt.length;
-    let savingsPct = 32.4;
-    let optimizedText = prompt;
-    let eLevel = 'E1 (Adaptive Politeness & Honorific Compaction)';
-    let explanation =
-      'Removed conversational pleasantries, excessive honorifics, and normalized whitespace while retaining core intent.';
-
-    if (prompt.includes('ದಯವಿಟ್ಟು') || prompt.includes('ಧನ್ಯವಾದಗಳು')) {
-      eLevel = 'E1 (Honorific & Politeness Trimming)';
-      optimizedText = prompt
-        .replace(/ದಯವಿಟ್ಟು\s*/g, '')
-        .replace(/ತುಂಬಾ ಧನ್ಯವಾದಗಳು!?/g, '')
-        .replace(/ಸ್ವಲ್ಪ ವಿವರವಾಗಿ ಮಾಹಿತಿ ನೀಡಿ/g, 'ವಿವರ ತಿಳಿಸಿ')
-        .trim();
-      savingsPct = 36.8;
-      explanation =
-        'Trimmed boilerplate politeness markers ("ದಯವಿಟ್ಟು", "ತುಂಬಾ ಧನ್ಯವಾದಗಳು") and condensed descriptive requests ("ಸ್ವಲ್ಪ ವಿವರವಾಗಿ ಮಾಹಿತಿ ನೀಡಿ" → "ವಿವರ ತಿಳಿಸಿ").';
-    } else if (prompt.includes('ನಮಸ್ಕಾರ') || prompt.includes('ಸಹಾಯ ಬೇಕಿತ್ತು')) {
-      eLevel = 'E2 (Morphological Compaction & Syntactic Streamlining)';
-      optimizedText = prompt
-        .replace(/ನಮಸ್ಕಾರ,\s*/g, '')
-        .replace(/ನನಗೆ ಒಂದು ಸಹಾಯ ಬೇಕಿತ್ತು\.\.\.\s*/g, '')
-        .replace(/ದಯವಿಟ್ಟು ತಿಳಿಸಿಕೊಡಿ/g, 'ತಿಳಿಸಿ')
-        .trim();
-      savingsPct = 31.5;
-      explanation =
-        'Eliminated introductory greetings and filler prefixes ("ನಮಸ್ಕಾರ", "ಸಹಾಯ ಬೇಕಿತ್ತು..."), compressing compound verbal directives.';
-    } else if (prompt.length < 35) {
-      eLevel = 'E0 (Short Fallback Passthrough)';
-      optimizedText = prompt;
-      savingsPct = 0;
-      explanation =
-        'Query is concise (< 35 characters). Passthrough applied to prevent semantic loss or hallucination.';
-    }
-
-    const originalTokens = Math.max(1, Math.round(originalChars * 0.82));
-    const optimizedChars = optimizedText.length;
-    const optimizedTokens =
-      savingsPct > 0 ? Math.max(1, Math.round(originalTokens * (1 - savingsPct / 100))) : originalTokens;
-
-    return {
-      originalPrompt: prompt,
-      optimizedPrompt: optimizedText,
-      mode,
-      eLevel,
-      originalCharacters: originalChars,
-      optimizedCharacters: optimizedChars,
-      originalTokens,
-      optimizedTokens,
-      tokenSavingsPercent: savingsPct,
-      characterSavingsPercent:
-        originalChars > 0 ? Math.round(((originalChars - optimizedChars) / originalChars) * 1000) / 10 : 0,
-      estimatedLatencyMs: 128,
-      explanation,
-      response: `[Mock LLM Output] ಈ ಕೆಳಗಿನ ಮಾಹಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ: ${optimizedText}`,
-    };
-  }
-
-  // Live backend call via axios
+/**
+ * Fetches real benchmark results from the backend via GET /api/benchmarks.
+ * Returns null if the endpoint is unavailable or empty.
+ */
+export async function fetchBenchmarks(): Promise<BenchmarkDataPoint[] | null> {
   try {
-    const startTime = performance.now();
-    const res = await apiClient.post<ChatResponse>('/api/v1/chat', { prompt });
-    const endTime = performance.now();
-
-    const originalChars = prompt.length;
-    const optimizedChars = res.data.prompt.length;
-    const originalTokens = Math.round(originalChars * 0.85);
-    const optimizedTokens = Math.round(optimizedChars * 0.85);
-    const charSavings =
-      originalChars > 0 ? Math.round(((originalChars - optimizedChars) / originalChars) * 1000) / 10 : 0;
-
-    return {
-      originalPrompt: prompt,
-      optimizedPrompt: res.data.prompt,
-      mode,
-      eLevel: 'E1 (Adaptive Backend Optimizer)',
-      originalCharacters: originalChars,
-      optimizedCharacters: optimizedChars,
-      originalTokens,
-      optimizedTokens,
-      tokenSavingsPercent: Math.max(0, charSavings),
-      characterSavingsPercent: Math.max(0, charSavings),
-      estimatedLatencyMs: Math.round(endTime - startTime),
-      explanation: 'Optimized via backend K-SMART pipeline.',
-      response: res.data.response,
-    };
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
+    const response = await apiClient.get<any>('/api/benchmarks', {
+      baseURL: getApiBaseUrl(),
+      timeout: 5000,
+    });
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      return response.data.map((item: any, idx: number) => ({
+        id: item.id || `E${idx}`,
+        name: item.name || item.id || `E${idx}`,
+        approach: item.approach || item.strategy || 'Evaluated Approach',
+        tokens: Number(item.tokens || item.avg_tokens || 0),
+        savings: String(item.savings || item.token_savings || '0.0%'),
+        latency: Number(item.latency || item.avg_latency_ms || 0),
+        similarity: String(item.similarity || '100%'),
+        verdict: String(item.verdict || 'Evaluated'),
+        verdictType:
+          item.verdictType ||
+          (item.id === 'E2' ? 'best' : item.id === 'E0' ? 'baseline' : 'neutral'),
+        barColor:
+          item.barColor ||
+          (item.id === 'E2' ? '#6366f1' : item.id === 'E0' ? '#52525b' : '#71717a'),
+        description: item.description || '',
+      }));
+    }
+    return null;
+  } catch {
+    return null;
   }
 }

@@ -12,7 +12,8 @@ import {
   Layers,
 } from 'lucide-react';
 import { OptimizationMode } from '../types';
-import { ChatMessage } from '../types/ksmart';
+import { ChatMessage, formatStrategyName } from '../types/ksmart';
+import { getApiBaseUrl } from '../services/api';
 import { PipelineStepper } from './PipelineStepper';
 import { PromptComparison } from './PromptComparison';
 import { CandidateAnalytics } from './CandidateAnalytics';
@@ -26,26 +27,27 @@ interface PromptStudioProps {
   mode: OptimizationMode;
   onModeChange: (mode: OptimizationMode) => void;
   error?: string | null;
-  onSwitchToMock?: () => void;
+  apiStatus?: 'connected' | 'offline' | 'checking' | null;
+  onRetryHealth?: () => void;
 }
 
 const DEMO_SAMPLES = [
   {
-    title: 'Verbose Travel (48 tok)',
+    title: 'Verbose Travel Query',
     prompt:
-      'ದಯವಿಟ್ಟು ನನಗೆ ಬೆಂಗಳೂರಿನಲ್ಲಿ ಭೇಟಿ ನೀಡಬಹುದಾದ 3 ಪ್ರಮುಖ ಪ್ರವಾಸಿ ಸ್ಥಳಗಳ ಬಗ್ಗೆ ಸ್ವಲ್ಪ ವಿವರವಾಗಿ ಮಾಹಿತಿ ನೀಡಿ. ತುಂಬಾ ಧನ್ಯವಾದಗಳು!',
-    badge: '48 tok → 26 tok (-45.8%)',
+      'Hello! Could you please give me a detailed list of the top 3 must-visit places in Bangalore along with a short description for each? Thank you so much!',
+    badge: 'Verbose Prompt',
   },
   {
-    title: 'Polite Tech (44 tok)',
+    title: 'Polite Coding Help',
     prompt:
-      'ನಮಸ್ಕಾರ, ನನಗೆ ಒಂದು ಸಹಾಯ ಬೇಕಿತ್ತು... ಪೈಥಾನ್ (Python) ಪ್ರೋಗ್ರಾಮಿಂಗ್ ಭಾಷೆಯನ್ನು ಕಲಿಯಲು ಉತ್ತಮವಾದ 4 ಹಂತಗಳನ್ನು ದಯವಿಟ್ಟು ತಿಳಿಸಿಕೊಡಿ.',
-    badge: '44 tok → 25 tok (-43.2%)',
+      'Hi there, I really need a small favor—could you kindly explain the 4 best steps for a complete beginner to start learning Python programming? Thanks in advance.',
+    badge: 'Polite Query',
   },
   {
-    title: 'Short Fallback (12 tok)',
-    prompt: 'ಕರ್ನಾಟಕದ ರಾಜಧಾನಿ ಯಾವುದು?',
-    badge: '12 tok (0.0% Passthrough)',
+    title: 'Short Atomic Query',
+    prompt: 'What is the capital of India?',
+    badge: 'Atomic Query',
   },
 ];
 
@@ -57,7 +59,8 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   mode,
   onModeChange,
   error,
-  onSwitchToMock,
+  apiStatus = 'checking',
+  onRetryHealth,
 }) => {
   const [input, setInput] = useState<string>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -67,6 +70,8 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const samplesRef = useRef<HTMLDivElement>(null);
+
+  const isOffline = apiStatus === 'offline';
 
   // Close samples menu on click outside or Escape
   useEffect(() => {
@@ -141,6 +146,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   };
 
   const handleSelectSample = (samplePrompt: string) => {
+    if (isOffline) return;
     setInput(samplePrompt);
     setIsSamplesOpen(false);
     if (textareaRef.current) {
@@ -156,7 +162,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
 
   const handleSend = () => {
     const text = input.trim();
-    if (!text || isRunning) return;
+    if (!text || isRunning || isOffline) return;
 
     onSendMessage(text, mode);
     setInput('');
@@ -176,20 +182,41 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
   // Shared Chat Input Component
   const renderInputBox = () => (
     <div className="w-full">
-      {/* Live API Error Alert Banner */}
-      {error && (
+      {/* Offline Alert Banner */}
+      {isOffline && (
+        <div className="mb-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span className="text-xs sm:text-sm font-medium">
+              Backend API is offline. Connect backend at <span className="font-mono text-rose-200">{getApiBaseUrl()}</span> or check your FastAPI server.
+            </span>
+          </div>
+          {onRetryHealth && (
+            <button
+              type="button"
+              onClick={onRetryHealth}
+              className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 font-medium transition-colors cursor-pointer"
+            >
+              Retry Connection
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Live API Error Alert Banner (if error exists and not already offline) */}
+      {!isOffline && error && (
         <div className="mb-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span className="text-xs sm:text-sm font-medium">{error}</span>
           </div>
-          {onSwitchToMock && (
+          {onRetryHealth && (
             <button
               type="button"
-              onClick={onSwitchToMock}
-              className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 font-medium transition-colors self-start sm:self-auto cursor-pointer"
+              onClick={onRetryHealth}
+              className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 font-medium transition-colors cursor-pointer"
             >
-              Switch to Mock Mode
+              Retry
             </button>
           )}
         </div>
@@ -202,16 +229,23 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
         </div>
       )}
 
-      {/* ChatGPT / Gemini Style Rounded Input Container */}
-      <div className="bg-zinc-900 border border-zinc-800 focus-within:border-zinc-700 rounded-2xl p-3 shadow-xl transition-colors">
+      {/* Rounded Input Container */}
+      <div className={`bg-zinc-900 border rounded-2xl p-3 shadow-xl transition-colors ${
+        isOffline ? 'border-rose-900/40 opacity-70' : 'border-zinc-800 focus-within:border-zinc-700'
+      }`}>
         <textarea
           ref={textareaRef}
           rows={2}
           value={input}
+          disabled={isOffline || isRunning}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message K-SMART..."
-          className="w-full bg-transparent border-0 text-zinc-100 placeholder-zinc-500 focus:outline-none text-sm resize-none max-h-32 min-h-[44px] font-sans leading-relaxed"
+          placeholder={
+            isOffline
+              ? 'Backend is offline. Check connection to send prompts...'
+              : 'Enter a prompt to optimize and run...'
+          }
+          className="w-full bg-transparent border-0 text-zinc-100 placeholder-zinc-500 focus:outline-none text-sm resize-none max-h-32 min-h-[44px] font-sans leading-relaxed disabled:cursor-not-allowed"
         />
 
         {/* Compact Bottom Toolbar inside Box */}
@@ -222,31 +256,33 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
             </label>
             <select
               id="chat-mode"
+              disabled={isOffline || isRunning}
               value={mode === 'compare_all' ? 'compare' : mode}
               onChange={(e) => onModeChange(e.target.value as OptimizationMode)}
-              className="bg-zinc-950/90 border border-zinc-800 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="bg-zinc-950/90 border border-zinc-800 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="adaptive">Adaptive Selection</option>
-              <option value="compare">Compare All E0–E3</option>
+              <option value="compare">Compare All Strategies</option>
             </select>
 
             {/* Subtle Samples Menu Button */}
             <div className="relative" ref={samplesRef}>
               <button
                 type="button"
+                disabled={isOffline || isRunning}
                 onClick={() => setIsSamplesOpen((prev) => !prev)}
-                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                title="Inject a demo Kannada preset"
+                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                title="Inject a demo sample preset"
               >
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Samples</span>
               </button>
 
               {/* Upward-Opening Menu */}
-              {isSamplesOpen && (
+              {isSamplesOpen && !isOffline && (
                 <div className="absolute left-0 bottom-full mb-2 z-50 bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-2xl w-80 space-y-1 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1.5 flex items-center justify-between">
-                    <span>Demo Kannada Presets</span>
+                    <span>Sample Presets</span>
                     <span className="text-[9px] text-indigo-400 font-semibold">1-Click Inject</span>
                   </div>
                   {DEMO_SAMPLES.map((sample, idx) => (
@@ -273,7 +309,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
           <button
             type="button"
             onClick={handleSend}
-            disabled={!input.trim() || isRunning}
+            disabled={!input.trim() || isRunning || isOffline}
             className="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white flex items-center justify-center transition-all shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
             title="Send prompt (Enter)"
           >
@@ -299,7 +335,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
               Hey! How can I help you today?
             </h1>
             <p className="mt-2 text-sm text-zinc-400">
-              ನಮಸ್ಕಾರ! ಕೇಳಿ — K-SMART optimizes every prompt automatically.
+              Optimize any prompt automatically with semantic-preserving minimization.
             </p>
           </div>
 
@@ -341,7 +377,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-zinc-200">K-SMART</span>
                           <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                            Gemini
+                            LLM
                           </span>
                         </div>
 
@@ -349,7 +385,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                         <button
                           type="button"
                           onClick={() => handleCopy(msg.id, msg.content)}
-                          className="text-xs text-zinc-500 hover:text-zinc-200 flex items-center gap-1 transition-colors px-2 py-0.5 rounded hover:bg-zinc-800"
+                          className="text-xs text-zinc-500 hover:text-zinc-200 flex items-center gap-1 transition-colors px-2 py-0.5 rounded hover:bg-zinc-800 cursor-pointer"
                           title="Copy answer"
                         >
                           {copiedId === msg.id ? (
@@ -417,7 +453,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                                 {msg.ksmartData.selected.tokens}
                               </span>
                               <span className="text-[10px] text-zinc-500 block truncate font-mono">
-                                {msg.ksmartData.selected.strategy}
+                                {formatStrategyName(msg.ksmartData.selected.strategy)}
                               </span>
                             </div>
                             <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-lg p-2.5">
@@ -450,7 +486,7 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                                 {(msg.ksmartData.metrics.llm_latency_ms / 1000).toFixed(2)} s
                               </span>
                               <span className="text-[10px] text-zinc-500 block truncate">
-                                {msg.ksmartData.metrics.llm_latency_ms} ms Gemini
+                                {msg.ksmartData.metrics.llm_latency_ms} ms LLM
                               </span>
                             </div>
                             <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-lg p-2.5">
@@ -495,34 +531,15 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
 
                             {isExpanded && (
                               <div className="mt-3 pt-3 border-t border-zinc-800/80 space-y-4 animate-in fade-in duration-200">
-                                {/* 4-Column E0–E3 Summary Strip when in compare mode */}
-                                {(msg.mode === 'compare' || msg.mode === 'compare_all' || mode === 'compare' || mode === 'compare_all') && (() => {
-                                  const candidates = msg.ksmartData.candidates || [];
-                                  const cE0 = candidates.find((c) => c.strategy.toLowerCase().includes('original'));
-                                  const cE1 = candidates.find((c) => c.strategy.toLowerCase().includes('normalized'));
-                                  const cE2 = msg.ksmartData.selected;
-                                  const cE3 = candidates.find(
-                                    (c) => c.strategy.toLowerCase().includes('english') || c.strategy.toLowerCase().includes('trans')
-                                  );
-
-                                  const e0Tokens = cE0 ? cE0.tokens : msg.ksmartData.original.tokens;
-                                  const e0Sim = cE0 ? (cE0.similarity * 100).toFixed(0) : '100';
-
-                                  const e1Tokens = cE1 ? cE1.tokens : Math.max(1, Math.round(e0Tokens * 0.91));
-                                  const e1Sim = cE1 ? (cE1.similarity * 100).toFixed(0) : '99';
-
-                                  const e2Tokens = cE2.tokens;
-                                  const e2Sim = (cE2.similarity_score * 100).toFixed(0);
-
-                                  const e3Tokens = cE3 ? cE3.tokens : Math.max(1, Math.round(e2Tokens * 0.72));
-                                  const e3Sim = cE3 ? (cE3.similarity * 100).toFixed(0) : '84';
-
-                                  return (
+                                {/* Multi-Strategy Breakdown strip if compare mode & candidates are present */}
+                                {(msg.mode === 'compare' || msg.mode === 'compare_all' || mode === 'compare' || mode === 'compare_all') &&
+                                  msg.ksmartData.candidates &&
+                                  msg.ksmartData.candidates.length > 0 && (
                                     <div className="space-y-2 pb-3 border-b border-zinc-800/70">
                                       <div className="flex items-center justify-between text-xs font-semibold text-zinc-300">
                                         <span className="flex items-center gap-1.5 text-indigo-300">
                                           <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                                          E0–E3 Multi-Channel Representation Breakdown
+                                          Multi-Strategy Candidate Comparison
                                         </span>
                                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                                           Compare Mode Active
@@ -530,82 +547,54 @@ export const PromptStudio: React.FC<PromptStudioProps> = ({
                                       </div>
 
                                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                        {/* E0 Original */}
-                                        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 flex flex-col justify-between">
-                                          <div>
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-[10px] font-mono font-bold text-zinc-400">E0</span>
-                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                                                {e0Sim}% Sim
-                                              </span>
+                                        {msg.ksmartData.candidates.slice(0, 4).map((c) => {
+                                          const isWinner = c.strategy === msg.ksmartData?.selected.strategy;
+                                          return (
+                                            <div
+                                              key={c.strategy}
+                                              className={`rounded-xl p-2.5 flex flex-col justify-between ${
+                                                isWinner
+                                                  ? 'bg-indigo-950/30 border border-indigo-500/40 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
+                                                  : 'bg-zinc-900/90 border border-zinc-800'
+                                              }`}
+                                            >
+                                              <div>
+                                                <div className="flex items-center justify-between">
+                                                  <span className={`text-[10px] font-mono font-bold ${
+                                                    isWinner ? 'text-indigo-400' : 'text-zinc-400'
+                                                  }`}>
+                                                    {c.passed_guard ? 'PASS' : 'REJECT'}
+                                                  </span>
+                                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+                                                    {(c.similarity * 100).toFixed(0)}% Sim
+                                                  </span>
+                                                </div>
+                                                <div className={`text-xs mt-1 truncate ${
+                                                  isWinner ? 'font-bold text-indigo-200' : 'font-medium text-zinc-200'
+                                                }`}>
+                                                  {formatStrategyName(c.strategy)}
+                                                </div>
+                                              </div>
+                                              <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
+                                                <span className="text-xs text-zinc-500">Tokens:</span>
+                                                <span className={`text-sm font-bold font-mono ${
+                                                  isWinner ? 'text-emerald-400' : 'text-zinc-300'
+                                                }`}>
+                                                  {c.tokens}
+                                                </span>
+                                              </div>
                                             </div>
-                                            <div className="text-xs font-medium text-zinc-200 mt-1">E0 Original</div>
-                                          </div>
-                                          <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
-                                            <span className="text-xs text-zinc-500">Tokens:</span>
-                                            <span className="text-sm font-bold font-mono text-zinc-200">{e0Tokens}</span>
-                                          </div>
-                                        </div>
-
-                                        {/* E1 Normalized */}
-                                        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 flex flex-col justify-between">
-                                          <div>
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-[10px] font-mono font-bold text-zinc-400">E1</span>
-                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                                                {e1Sim}% Sim
-                                              </span>
-                                            </div>
-                                            <div className="text-xs font-medium text-zinc-200 mt-1">E1 Normalized</div>
-                                          </div>
-                                          <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
-                                            <span className="text-xs text-zinc-500">Tokens:</span>
-                                            <span className="text-sm font-bold font-mono text-zinc-300">{e1Tokens}</span>
-                                          </div>
-                                        </div>
-
-                                        {/* E2 K-SMART (Winner) */}
-                                        <div className="bg-indigo-950/30 border border-indigo-500/40 rounded-xl p-2.5 flex flex-col justify-between shadow-[0_0_12px_rgba(99,102,241,0.15)]">
-                                          <div>
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-[10px] font-mono font-bold text-indigo-400">E2</span>
-                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
-                                                {e2Sim}% Sim
-                                              </span>
-                                            </div>
-                                            <div className="text-xs font-bold text-indigo-200 mt-1 flex items-center gap-1">
-                                              <span>E2 K-SMART</span>
-                                              <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 uppercase">Winner</span>
-                                            </div>
-                                          </div>
-                                          <div className="mt-2 pt-1 border-t border-indigo-500/20 flex items-baseline justify-between">
-                                            <span className="text-xs text-indigo-300">Tokens:</span>
-                                            <span className="text-sm font-bold font-mono text-emerald-400">{e2Tokens}</span>
-                                          </div>
-                                        </div>
-
-                                        {/* E3 English Trans. */}
-                                        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 flex flex-col justify-between">
-                                          <div>
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-[10px] font-mono font-bold text-amber-400">E3</span>
-                                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                                {e3Sim}% Sim
-                                              </span>
-                                            </div>
-                                            <div className="text-xs font-medium text-zinc-200 mt-1">E3 English Trans.</div>
-                                          </div>
-                                          <div className="mt-2 pt-1 border-t border-zinc-800/60 flex items-baseline justify-between">
-                                            <span className="text-xs text-zinc-500">Tokens:</span>
-                                            <span className="text-sm font-bold font-mono text-amber-400">{e3Tokens}</span>
-                                          </div>
-                                        </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
-                                  );
-                                })()}
+                                  )}
+
                                 <PromptComparison data={msg.ksmartData} />
-                                <CandidateAnalytics data={msg.ksmartData} />
+
+                                {msg.ksmartData.candidates && msg.ksmartData.candidates.length > 0 && (
+                                  <CandidateAnalytics data={msg.ksmartData} />
+                                )}
                               </div>
                             )}
                           </div>

@@ -9,38 +9,38 @@ interface ArchitectureModalProps {
 const STAGES = [
   {
     step: 'Stage 1',
-    title: 'Kannada Unicode Normalization',
-    subtitle: 'NFC & Zero-Width Cleanup',
+    title: 'Text & Whitespace Normalization',
+    subtitle: 'Canonical Cleanup & Redundant Whitespace Removal',
     description:
-      'Normalizes Kannada Unicode codepoints using NFC form. Removes hidden zero-width non-joiners (ZWNJ) and non-standard halant sequences that cause tokenizers to split conjuncts into 3–4x more sub-word tokens.',
-    badge: 'Unicode Level',
+      'Performs canonical text normalization and removes excessive whitespace, repeated punctuation, boilerplate conversational fillers, and zero-width artifacts that needlessly inflate sub-word token counts.',
+    badge: 'Normalization',
     icon: <Cpu className="w-4 h-4 text-sky-400" />,
   },
   {
     step: 'Stage 2',
     title: 'Multi-Strategy Candidate Generation',
-    subtitle: '5 Concurrent Representation Channels',
+    subtitle: 'Concurrent Multi-Channel Representations',
     description:
-      'Generates 5 distinct representations in parallel: Original (E0), Normalized (E1), Concise Kannada (E2), Structured Key-Value Kannada, and English Translated (E3) to explore the optimal compression frontier.',
+      'Generates concise, structured, and compressed prompt variants across parallel strategies to explore the optimal token-reduction frontier while preserving core user intent.',
     badge: 'Multi-Channel',
     icon: <Layers className="w-4 h-4 text-indigo-400" />,
   },
   {
     step: 'Stage 3',
     title: 'Semantic Similarity Guard',
-    subtitle: 'Cosine & Embedding Meaning Verifier',
+    subtitle: 'Embedding-Based Meaning Preservation Verifier',
     description:
-      'Computes cosine similarity between candidate representations and the original prompt embedding. Candidates dropping below the 0.85 threshold are rejected immediately to eliminate factual drift and hallucination.',
-    badge: 'Guaranteed Fidelity',
+      'Computes semantic similarity against the original prompt embedding. Candidates dropping below the target threshold are rejected immediately to eliminate factual drift or hallucination.',
+    badge: 'Fidelity Guard',
     icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
   },
   {
     step: 'Stage 4',
-    title: 'Token-Optimal Selection & Adaptive Fallback',
+    title: 'Token-Optimal Selection & Fallback',
     subtitle: 'Pareto-Optimal Representation Dispatch',
     description:
-      'Ranks valid candidates by token reduction efficiency. Adaptively falls back to the original prompt (E0) whenever compression degrades meaning or for short queries (<35 chars).',
-    badge: 'Adaptive Dispatch',
+      'Selects the lowest-token passing candidate that guarantees meaning retention. Adaptively falls back to the original unaltered prompt whenever compression compromises clarity or for short atomic queries.',
+    badge: 'Adaptive Fallback',
     icon: <Sparkles className="w-4 h-4 text-violet-400" />,
   },
 ];
@@ -88,7 +88,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Kannada Semantic-preserving Minimization &amp; Adaptive Representation Technique
+                Semantic-Preserving Prompt Optimization &amp; Token Telemetry Middleware
               </p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
         <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-500">
           <div className="flex items-center gap-1.5 text-emerald-400">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Average 38.4% token reduction with 92.6% meaning retention</span>
+            <span>Semantic fidelity guarded with token-optimal dispatch</span>
           </div>
 
           <button

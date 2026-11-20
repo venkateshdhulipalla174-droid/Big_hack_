@@ -31,8 +31,7 @@ export const ResponseCard: React.FC<ResponseCardProps> = ({ response, outputToke
           </div>
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-zinc-100 flex items-center gap-2">
-              Gemini Kannada Response{' '}
-              <span className="text-zinc-400 font-normal text-xs">(ಕನ್ನಡ ಉತ್ತರ)</span>
+              LLM Response
             </h3>
           </div>
         </div>
@@ -41,7 +40,7 @@ export const ResponseCard: React.FC<ResponseCardProps> = ({ response, outputToke
         <div className="flex items-center gap-2 text-xs">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700/60 font-mono">
             <Bot className="w-3.5 h-3.5 text-zinc-400" />
-            Model: Gemini
+            Model: LLM
           </span>
 
           <span className="px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700/60 font-mono">
@@ -51,7 +50,7 @@ export const ResponseCard: React.FC<ResponseCardProps> = ({ response, outputToke
           <button
             type="button"
             onClick={handleCopy}
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md border text-xs font-medium transition-all duration-150 ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md border text-xs font-medium transition-all duration-150 cursor-pointer ${
               copied
                 ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-400'
                 : 'bg-zinc-800 hover:bg-zinc-750 text-zinc-300 border-zinc-700/70 hover:text-white'
@@ -73,7 +72,7 @@ export const ResponseCard: React.FC<ResponseCardProps> = ({ response, outputToke
         </div>
       </div>
 
-      {/* Body: Kannada Script Rendered Cleanly */}
+      {/* Body: LLM Text Rendered Cleanly */}
       <div className="mt-4 pt-1">
         <p className="whitespace-pre-line leading-relaxed text-zinc-100 text-base font-sans selection:bg-indigo-500/40 selection:text-white">
           {response}

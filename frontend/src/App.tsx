@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TabType, OptimizationMode } from './types';
 import { ChatMessage } from './types/ksmart';
-import { optimizeAndRun, checkBackendHealth } from './services/api';
+import { optimizeAndRun, checkBackendHealth, getApiBaseUrl } from './services/api';
 import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
 import { BenchmarkView } from './components/BenchmarkView';
@@ -9,10 +9,9 @@ import { ArchitectureModal } from './components/ArchitectureModal';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
-  const [mockMode, setMockMode] = useState<boolean>(true);
   const [mode, setMode] = useState<OptimizationMode>('adaptive');
   const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
-  const [apiStatus, setApiStatus] = useState<'connected' | 'offline' | null>(null);
+  const [apiStatus, setApiStatus] = useState<'connected' | 'offline' | 'checking'>('checking');
 
   // Conversational Chat Messages State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -31,6 +30,7 @@ export const App: React.FC = () => {
   );
 
   const handleCheckHealth = async () => {
+    setApiStatus('checking');
     try {
       const isHealthy = await checkBackendHealth();
       setApiStatus(isHealthy ? 'connected' : 'offline');
@@ -39,18 +39,17 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleToggleMockMode = async () => {
-    const nextMock = !mockMode;
-    setMockMode(nextMock);
-    setError(null);
-    if (!nextMock) {
-      await handleCheckHealth();
-    } else {
-      setApiStatus(null);
-    }
-  };
+  // Run health check on initial mount
+  useEffect(() => {
+    handleCheckHealth();
+  }, []);
 
   const handleSendMessage = async (promptText: string, selectedMode: OptimizationMode) => {
+    if (apiStatus === 'offline') {
+      setError(`Backend API is offline at ${getApiBaseUrl()}. Please connect the backend before sending prompts.`);
+      return;
+    }
+
     setError(null);
 
     // 1. Add user message immediately
@@ -64,26 +63,21 @@ export const App: React.FC = () => {
 
     setMessages((prev) => [...prev, userMsg]);
     setIsRunning(true);
-    setActiveStep(1); // Step 1: Unicode Normalize
+    setActiveStep(1); // Step 1: Text & Whitespace Normalization
 
     try {
-      // 2. Animate pipeline 1 to 4 (~1.2s total, 300ms per step)
-      await new Promise((r) => setTimeout(r, 300));
-      setActiveStep(2); // Step 2: Generate 5 Candidates
+      // 2. Animate pipeline 1 to 4 smoothly
+      await new Promise((r) => setTimeout(r, 250));
+      setActiveStep(2); // Step 2: Multi-Strategy Candidate Generation
 
-      await new Promise((r) => setTimeout(r, 300));
-      setActiveStep(3); // Step 3: Meaning Guard & Tokenize
+      await new Promise((r) => setTimeout(r, 250));
+      setActiveStep(3); // Step 3: Semantic Similarity Guard
 
-      await new Promise((r) => setTimeout(r, 300));
-      setActiveStep(4); // Step 4: Gemini API Response
+      await new Promise((r) => setTimeout(r, 250));
+      setActiveStep(4); // Step 4: Token-Optimal Selection & LLM Execution
 
-      // In mock mode add a tiny extra delay so step 4 is clearly perceptible
-      if (mockMode) {
-        await new Promise((r) => setTimeout(r, 300));
-      }
-
-      // 3. Resolve response data via live FastAPI client or mock engine
-      const responseData = await optimizeAndRun(promptText, selectedMode, mockMode);
+      // 3. Resolve response data strictly via live FastAPI client
+      const responseData = await optimizeAndRun(promptText, selectedMode);
 
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -95,10 +89,11 @@ export const App: React.FC = () => {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
+      setApiStatus('connected');
     } catch (err: unknown) {
       console.error('K-SMART request failed:', err);
 
-      let errorMessage = 'Failed to connect to backend at http://localhost:8000. Is FastAPI server running?';
+      let errorMessage = `Failed to connect to backend at ${getApiBaseUrl()}. Is FastAPI server running?`;
       if (typeof err === 'object' && err !== null) {
         const errorObj = err as { response?: { data?: { detail?: string } }; message?: string };
         if (errorObj.response?.data?.detail) {
@@ -109,15 +104,10 @@ export const App: React.FC = () => {
       }
 
       setError(`Live API Error: ${errorMessage}`);
+      setApiStatus('offline');
     } finally {
       setIsRunning(false);
     }
-  };
-
-  const handleSwitchToMock = () => {
-    setMockMode(true);
-    setApiStatus(null);
-    setError(null);
   };
 
   const handleNewChat = () => {
@@ -130,14 +120,12 @@ export const App: React.FC = () => {
   // Global Keyboard Shortcuts (Ctrl+K / Cmd+K for New Chat, Escape for modals)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Ctrl + K or Cmd + K: New Chat when messages exist
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         if (messages.length > 0) {
           handleNewChat();
         }
       }
-      // Escape: Close Architecture Modal or reset error
       if (e.key === 'Escape') {
         setIsArchitectureOpen(false);
       }
@@ -153,8 +141,6 @@ export const App: React.FC = () => {
       <Navbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        mockMode={mockMode}
-        onToggleMockMode={handleToggleMockMode}
         hasMessages={messages.length > 0}
         onNewChat={handleNewChat}
         sessionOriginalTokens={sessionOriginalTokens}
@@ -181,7 +167,8 @@ export const App: React.FC = () => {
             mode={mode}
             onModeChange={setMode}
             error={error}
-            onSwitchToMock={handleSwitchToMock}
+            apiStatus={apiStatus}
+            onRetryHealth={handleCheckHealth}
           />
         ) : (
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
@@ -200,7 +187,7 @@ export const App: React.FC = () => {
       <footer className="w-full border-t border-zinc-900 bg-zinc-950/90 py-3 text-center text-xs text-zinc-500">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            K-SMART: Kannada Semantic-preserving Minimization &amp; Adaptive Representation Technique
+            K-SMART: Semantic-Preserving Prompt Optimization &amp; Token Telemetry Middleware
           </span>
           <span className="text-zinc-600">Research &amp; Hackathon Prototype</span>
         </div>
