@@ -35,5 +35,17 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(health_router, prefix="/api")
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(chat_router)
+app.include_router(chat_router, prefix="/api")
 app.include_router(chat_router, prefix="/api/v1")
+
+
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "service": "ksmart-backend",
+        "version": "0.1.0",
+    }

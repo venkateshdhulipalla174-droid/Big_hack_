@@ -31,6 +31,9 @@ class CandidateInfo(BaseModel):
     tokens: Optional[int] = None
     guard_passed: bool = True
     guard_failures: List[str] = Field(default_factory=list)
+    strategy: Optional[str] = None
+    similarity: Optional[float] = None
+    passed_guard: Optional[bool] = None
 
 
 class TokenMetrics(BaseModel):
@@ -69,6 +72,13 @@ class ChatResponse(BaseModel):
     candidates: List[CandidateInfo] = Field(default_factory=list)
     tokens: TokenMetrics
     response: Optional[str] = None
+    llm_response: Optional[str] = None
+    original_tokens: Optional[int] = None
+    optimized_tokens: Optional[int] = None
+    tokens_saved: Optional[int] = None
+    savings_percent: Optional[float] = None
+    selected_strategy: Optional[str] = None
+    similarity_score: Optional[float] = None
     latency_ms: LatencyMetrics
     model: str
     error: Optional[ErrorDetail] = None
