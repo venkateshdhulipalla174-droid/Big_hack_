@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class Candidate:
     text: str
     strategy: str
+    token_count: int | None = None
