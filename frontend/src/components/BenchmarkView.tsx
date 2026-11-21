@@ -20,12 +20,15 @@ import {
   Sparkles,
   AlertTriangle,
   CheckCircle2,
+<<<<<<< HEAD
   Sliders,
   Calculator,
   Zap,
   Download,
   RefreshCw,
   Inbox,
+=======
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
 } from 'lucide-react';
 import { BenchmarkDataPoint } from '../types/ksmart';
 import { fetchBenchmarks, getApiBaseUrl } from '../services/api';
@@ -95,6 +98,7 @@ export const BenchmarkView: React.FC = () => {
   const [benchmarkData, setBenchmarkData] = useState<BenchmarkDataPoint[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [metric, setMetric] = useState<MetricType>('tokens');
+<<<<<<< HEAD
   const [queries, setQueries] = useState<number>(1000000);
 
   const loadBenchmarks = async () => {
@@ -120,6 +124,8 @@ export const BenchmarkView: React.FC = () => {
     { label: '5M', value: 5000000 },
     { label: '10M', value: 10000000 },
   ];
+=======
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
 
   const handleExportCSV = () => {
     if (!benchmarkData || benchmarkData.length === 0) return;
@@ -295,6 +301,7 @@ export const BenchmarkView: React.FC = () => {
               </div>
             </div>
 
+<<<<<<< HEAD
             {/* KPI 3 */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl shadow-black/20 flex flex-col justify-between hover:border-zinc-700/80 transition-all">
               <div className="flex items-center justify-between pb-2">
@@ -670,6 +677,59 @@ export const BenchmarkView: React.FC = () => {
           </div>
         </>
       )}
+=======
+                  {/* Avg Latency */}
+                  <td className="py-3 px-3 font-mono text-zinc-300">
+                    {row.latency.toLocaleString()} ms
+                  </td>
+
+                  {/* Similarity */}
+                  <td className="py-3 px-3 font-mono text-zinc-300">
+                    <span
+                      className={
+                        parseFloat(row.similarity) >= 90
+                          ? 'text-emerald-400 font-medium'
+                          : 'text-amber-400'
+                      }
+                    >
+                      {row.similarity}
+                    </span>
+                  </td>
+
+                  {/* Verdict */}
+                  <td className="py-3 px-3 text-right">
+                    {isBest ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(52,211,153,0.15)]">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {row.verdict}
+                      </span>
+                    ) : isWarning ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        <AlertTriangle className="w-3 h-3" />
+                        {row.verdict}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+                        {row.verdict}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Footnote summary */}
+        <div className="mt-4 pt-3 border-t border-zinc-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-zinc-500">
+          <span>
+            Key Finding: E2 K-SMART yields the optimal Pareto frontier between token reduction
+            (-38.4%) and semantic fidelity (92.6%) with the lowest latency (1,180 ms).
+          </span>
+          <span className="font-mono text-zinc-400">Baseline = E0 (Original)</span>
+        </div>
+      </div>
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
     </div>
   );
 };

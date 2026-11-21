@@ -8,11 +8,14 @@ interface NavbarProps {
   onTabChange: (tab: TabType) => void;
   hasMessages?: boolean;
   onNewChat?: () => void;
+<<<<<<< HEAD
   sessionOriginalTokens?: number;
   sessionSavedTokens?: number;
   onOpenArchitecture?: () => void;
   apiStatus?: 'connected' | 'offline' | 'checking' | null;
   onRecheckHealth?: () => void;
+=======
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   hasMessages = false,
   onNewChat,
+<<<<<<< HEAD
   sessionOriginalTokens = 0,
   sessionSavedTokens = 0,
   onOpenArchitecture,
@@ -61,10 +65,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+=======
+}) => {
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Left: Glowing Indigo Sparkles + Title + Clickable V0.1 Badge */}
+        {/* Left: Glowing Indigo Sparkles + Title + V0.1 Badge */}
         <div className="flex items-center gap-2.5">
           <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-950/60 border border-indigo-500/40 text-indigo-400 shadow-[0_0_16px_rgba(99,102,241,0.4)]">
             <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
@@ -73,6 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="font-bold text-base sm:text-lg tracking-tight text-zinc-100">
               K-SMART
             </span>
+<<<<<<< HEAD
             <button
               type="button"
               onClick={onOpenArchitecture}
@@ -81,6 +89,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               V0.1
             </button>
+=======
+            <span className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+              v0.1
+            </span>
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
           </div>
         </div>
 
@@ -110,6 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
+<<<<<<< HEAD
         {/* Right: Cumulative Session Savings + New Chat + Live API Status Popover */}
         <div className="flex items-center gap-2.5">
           {/* Cumulative Session Savings Telemetry Pill */}
@@ -123,18 +137,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
+=======
+        {/* Right: New Chat (when messages exist) + Mock Mode Toggle Switch */}
+        <div className="flex items-center gap-2.5">
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
           {hasMessages && onNewChat && (
             <button
               type="button"
               onClick={onNewChat}
+<<<<<<< HEAD
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-all shadow-sm group cursor-pointer"
               title="Start a new chat session (Ctrl+K)"
+=======
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition-all shadow-sm group"
+              title="Start a new chat session"
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
             >
               <Plus className="w-3.5 h-3.5 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
               <span>New Chat</span>
             </button>
           )}
 
+<<<<<<< HEAD
           {/* Live API Connection Status Pill with Dynamic URL Popover */}
           <div className="relative" ref={popoverRef}>
             <button
@@ -146,6 +170,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : apiStatus === 'checking'
                   ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
                   : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+=======
+          {/* Mock Mode Switch */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={mockMode}
+            onClick={onToggleMockMode}
+            className={`group flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+              mockMode
+                ? 'bg-zinc-900/90 border-zinc-700 text-zinc-200 hover:border-zinc-600'
+                : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+            }`}
+          >
+            {/* Status dot */}
+            <span className="relative flex h-2 w-2">
+              {mockMode ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                </>
+              ) : (
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-600"></span>
+              )}
+            </span>
+
+            <span className="hidden sm:inline">Mock Mode</span>
+
+            {/* Visual switch slider */}
+            <div
+              className={`w-7 h-4 flex items-center rounded-full p-0.5 transition-colors duration-200 ${
+                mockMode ? 'bg-emerald-500/30 border border-emerald-500/50' : 'bg-zinc-800 border border-zinc-700'
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
               }`}
               title={
                 apiStatus === 'offline'

@@ -5,13 +5,15 @@ import { optimizeAndRun, checkBackendHealth, getApiBaseUrl } from './services/ap
 import { Navbar } from './components/Navbar';
 import { PromptStudio } from './components/PromptStudio';
 import { BenchmarkView } from './components/BenchmarkView';
-import { ArchitectureModal } from './components/ArchitectureModal';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('playground');
   const [mode, setMode] = useState<OptimizationMode>('adaptive');
+<<<<<<< HEAD
   const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
   const [apiStatus, setApiStatus] = useState<'connected' | 'offline' | 'checking'>('checking');
+=======
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
 
   // Conversational Chat Messages State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -19,6 +21,7 @@ export const App: React.FC = () => {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+<<<<<<< HEAD
   // Cumulative Session Telemetry
   const sessionOriginalTokens = messages.reduce(
     (acc, msg) => acc + (msg.ksmartData ? msg.ksmartData.original.tokens : 0),
@@ -44,6 +47,8 @@ export const App: React.FC = () => {
     handleCheckHealth();
   }, []);
 
+=======
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
   const handleSendMessage = async (promptText: string, selectedMode: OptimizationMode) => {
     if (apiStatus === 'offline') {
       setError(`Backend API is offline at ${getApiBaseUrl()}. Please connect the backend before sending prompts.`);
@@ -143,11 +148,14 @@ export const App: React.FC = () => {
         onTabChange={setActiveTab}
         hasMessages={messages.length > 0}
         onNewChat={handleNewChat}
+<<<<<<< HEAD
         sessionOriginalTokens={sessionOriginalTokens}
         sessionSavedTokens={sessionSavedTokens}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
         apiStatus={apiStatus}
         onRecheckHealth={handleCheckHealth}
+=======
+>>>>>>> parent of 70505ed (feat: implement Step 7 session telemetry pill, architecture modal, and scale simulator)
       />
 
       {/* Main Workspace */}
@@ -176,12 +184,6 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
-
-      {/* 4-Stage Middleware Architecture Modal */}
-      <ArchitectureModal
-        isOpen={isArchitectureOpen}
-        onClose={() => setIsArchitectureOpen(false)}
-      />
 
       {/* Sleek Minimal Footer */}
       <footer className="w-full border-t border-zinc-900 bg-zinc-950/90 py-3 text-center text-xs text-zinc-500">
