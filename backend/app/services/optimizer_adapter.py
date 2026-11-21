@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import List, Optional
 
 # Ensure core package directory is in sys.path when running standalone or via uvicorn
-_core_dir = str(Path(__file__).resolve().parents[3] / "core")
-if _core_dir not in sys.path:
-    sys.path.insert(0, _core_dir)
+_core_dir = Path(__file__).resolve().parents[2] / "core"
+if _core_dir.is_dir() and str(_core_dir) not in sys.path:
+    sys.path.insert(0, str(_core_dir))
 
 from ksmart.config import PipelineConfig
 from ksmart.pipeline import PipelineResult, optimize as ksmart_optimize

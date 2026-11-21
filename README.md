@@ -4,7 +4,7 @@ K-SMART is a Kannada-aware prompt optimization research project that compares pr
 
 ## Repository structure
 
-- `core/` - installable prompt optimization library
+- `backend/core/` - installable prompt optimization library
 - `backend/` - FastAPI service
 - `frontend/` - React/Vite interface
 - `evaluation/` - prompt datasets, experiments, metrics, and analysis
