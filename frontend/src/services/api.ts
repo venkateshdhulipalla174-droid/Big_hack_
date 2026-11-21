@@ -2,7 +2,9 @@ import axios from 'axios';
 import { KSmartResponse, Candidate, BenchmarkDataPoint } from '../types/ksmart';
 
 const FALLBACK_API_URL = 'http://localhost:8000';
-const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || FALLBACK_API_URL;
+const DEFAULT_API_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+  FALLBACK_API_URL;
 
 /**
  * Validates that a given URL strictly starts with http:// or https://, falling back to default/localhost otherwise.
