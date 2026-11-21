@@ -1,12 +1,12 @@
 .PHONY: setup test run-api run-eval
 
 setup:
-	python -m pip install -e ./core
+	python -m pip install -e ./backend/core
 	python -m pip install -r ./backend/requirements.txt
 	cd frontend && npm install
 
 test:
-	cd core && pytest
+	cd backend/core && pytest
 	cd backend && pytest
 
 run-api:

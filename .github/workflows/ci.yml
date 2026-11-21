@@ -13,9 +13,9 @@ jobs:
         with:
           python-version: "3.11"
       - run: python -m pip install pytest
-      - run: python -m pip install -e ./core
+      - run: python -m pip install -e ./backend/core
       - run: python -m pip install -r ./backend/requirements.txt
-      - run: cd core && pytest
+      - run: cd backend/core && pytest
       - run: cd backend && pytest
       - uses: actions/setup-node@v4
         with:
