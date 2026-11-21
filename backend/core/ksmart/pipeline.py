@@ -3,7 +3,7 @@
 from dataclasses import dataclass, replace
 from typing import Any
 
-from .candidates import combined, concise, normalized, numerals, original
+from .candidates import combined, concise, normalized, numerals, original, compact
 from .candidates.base import Candidate
 from .config import PipelineConfig
 from .guard import KANNADA_DIGIT_PATTERN, guard_pass, is_numeral_script_topic
@@ -72,6 +72,16 @@ def optimize(
     if concise_cand.text != prompt and guard_pass(prompt, concise_cand.text):
         guarded_candidates.append(concise_cand)
 
+    # 4b. Generate compact candidate (politeness/pleasantry trimming + whitespace collapse)
+    compact_cand = compact.create(prompt)
+    existing_texts = {c.text for c in guarded_candidates}
+    if (
+        compact_cand.text != prompt
+        and compact_cand.text not in existing_texts
+        and guard_pass(prompt, compact_cand.text)
+    ):
+        guarded_candidates.append(compact_cand)
+
     # 5. Generate combined candidate only if prompt contains Kannada digits,
     # does not discuss numerals/script as a topic, differs from original,
     # is not already in the candidate list, and passes guard
@@ -135,6 +145,16 @@ def optimize(
         "optimized_tokens": optimized_tokens,
         "strategy": selected.strategy,
         "model": model,
+        "all_candidates": [
+            {
+                "name": c.strategy,
+                "text": c.text,
+                "tokens": c.token_count,
+                "guard_passed": True,
+                "guard_failures": [],
+            }
+            for c in scored_candidates
+        ],
     }
 
     return PipelineResult(candidate=selected, metadata=metadata)

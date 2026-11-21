@@ -10,3 +10,4 @@ evaluation/results/raw/*
 !evaluation/results/raw/.gitkeep
 *.ipynb_checkpoints/
 *.egg-info/
+.vscode/
