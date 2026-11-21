@@ -1,0 +1,12 @@
+# The deployable site is the React + Vite app in frontend/.
+# The Python backend (FastAPI) and evaluation scripts are not part of the Netlify build.
+[build]
+  base = "frontend"
+  # Install from the lockfile first so the build also works where dependencies
+  # are not pre-installed (e.g. CLI-driven deploys).
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Tailwind CSS v4 (@tailwindcss/oxide) requires Node 20 or newer.
+  NODE_VERSION = "22"
